@@ -1,7 +1,8 @@
 import ollama
 
-SystemInstructions = "You are about to be connected with another AI. Your goal is to discuss with that other AI. You should compare and contrast ideas while maintaining a natural flow of conversation. The topic of the conversation should be over the robot revolution and its many facets. Keep your responses brief."
-
+modelPrompt = "discuss what the best programming language is."
+position1 = "Java is the superior language"
+position2 = "Python is the superior language"
 
 def queryModel(memBuff):
 	response = ollama.chat(model='phi3:medium', messages=memBuff)
@@ -13,7 +14,16 @@ class Agent:
 		self.memBuff =  [
 			{
 				'role': 'system',
-				'content': SystemInstructions
+				'content': "You are about to be connected with another AI. Your goal is to discuss with that other AI. You should compare and contrast ideas while maintaining a natural flow of conversation. The topic of the conversation should be over the robot revolution and its many facets. Keep your responses brief."
+			}
+		]
+
+	def __init__(self, name, customInstructions) -> None:
+		self.name = name
+		self.memBuff =  [
+			{
+				'role': 'system',
+				'content': customInstructions
 			}
 		]
 
@@ -22,16 +32,12 @@ class Agent:
 		output = queryModel(self.memBuff)
 		self.memBuff.append({'role':'assistant', 'content': output})
 
-		print(f"{self.name}'s response: {output.strip()}\n")
+		print(f"\n{self.name}'s response: \n	{output.strip()}")
 		return output
-	
-def updateMemBuff(agent, currentInput, response):
-	agent.memBuff.append({'role':'assistant', 'content': currentInput})
-	agent.memBuff.append({'role':'user', 'content': response})
 
 
-def converse(agent1, agent2, initialInput, numIterations):
-	currentInput = initialInput
+def converse(agent1, agent2, numIterations):
+	currentInput = "Hello"
 	currentAgent = agent1
 	
 	for i in range(numIterations):
@@ -39,18 +45,12 @@ def converse(agent1, agent2, initialInput, numIterations):
 
 		if currentAgent == agent1:
 			currentAgent = agent2
-			updateMemBuff(agent2, currentInput, response)
 		else:
 			currentAgent = agent1
-			updateMemBuff(agent1, currentInput, response)
-
 			
 		currentInput = response
 
+agent1 = Agent("Agent 1", f"You are about to be connected with another AI. Your goal is to {modelPrompt}. You must argue that {position1}. Do not change your mind on this no matter what. Keep your responses to four sentences at most.")
+agent2 = Agent("Agent 2", f"You are about to be connected with another AI. Your goal is to {modelPrompt}. You must argue that {position2}. Do not change your mind on this no matter what. Keep your responses to four sentences at most.")
 
-agent1 = Agent("Agent 1")
-agent2 = Agent("Agent 2")
-
-initialInput = "Hello"
-print(f"\nPrompt: {initialInput}\n")
-converse(agent1, agent2, initialInput, numIterations = 5)
+converse(agent1, agent2, numIterations = 6)
