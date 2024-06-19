@@ -48,14 +48,18 @@ def taskAllocation():
 	agent2task1 = "1/10"
 	agent2task2 = "1/10"
 
-	task1 = "A recognizing game"
-	task2 = "A word hunt game"
+	task1 = "a recognizing game"
+	task2 = "a word hunt game"
 
-	agent1Instructions = f"You are about to be connected with another AI. Your goal is to allocate two tasks between the two of you based on your own expertise and weaknesses for both tasks. You must negotiate with the other AI to complete this, learning their strengths and weaknesses conversationally. Your skill level is on a scale of 1 to 10, where 10 is used for tasks you're very confident in, and 1 is used for those you are not confident in whatsoever. Respond in no more than four sentences. Your unique skill level for Task 1, {task1}, is {agent1task1}, and your unique skill level for Task 2, {task2}, is {agent1task2}. Note that the other AI likely has different skill levels than you. Do not deviate from these given skill levels."
-	agent2Instructions = f"You are about to be connected with another AI. Your goal is to allocate two tasks between the two of you based on your own expertise and weaknesses for both tasks. You must negotiate with the other AI to complete this, learning their strengths and weaknesses conversationally. Your skill level is on a scale of 1 to 10, where 10 is used for tasks you're very confident in, and 1 is used for those you are not confident in whatsoever. Respond in no more than four sentences. Your unique skill level for Task 1, {task1}, is {agent2task1}, and your unique skill level for Task 2, {task2}, is {agent2task2}. Note that the other AI likely has different skill levels than you. Do not deviate from these given skill levels."
+	systemInstructions = "You are about to be connected with another AI. Your goal is to allocate two tasks between the two of you based on your own expertise and weaknesses for both tasks. You must negotiate with the other AI to complete this, learning their strengths and weaknesses conversationally. Your skill level is on a scale of 1 to 10, where 10 is used for tasks you're very confident in, and 1 is used for those you are not confident in whatsoever. Respond in no more than four sentences. Note that the other AI likely has different skill levels than you. Do not deviate from your given skill levels. "
 
-	agent1 = Agent("Agent 1", agent1Instructions)
-	agent2 = Agent("Agent 2", agent2Instructions)
+	agent1Instructions = f"Your unique skill level for Task 1, {task1}, is {agent1task1}, and your unique skill level for Task 2, {task2}, is {agent1task2}."
+	agent2Instructions = f"Your unique skill level for Task 1, {task1}, is {agent2task1}, and your unique skill level for Task 2, {task2}, is {agent2task2}."
+
+
+
+	agent1 = Agent("Agent 1", systemInstructions + agent1Instructions)
+	agent2 = Agent("Agent 2", systemInstructions + agent2Instructions)
 
 	converse(agent1, agent2, 6)
 
