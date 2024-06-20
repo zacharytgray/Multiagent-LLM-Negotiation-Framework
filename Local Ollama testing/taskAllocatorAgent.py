@@ -15,25 +15,28 @@ class TaskAllocatorAgent:
 		self.memoryBuffer = [
 			{
 				'role': 'system',
-				'content': systemInstructions
+				'content': systemInstructions + f"Your unique skill levels are as follows: Task 1 ({self.task1}) - skill level {self.skill1}, Task 2 ({self.task2}) - skill level {self.skill2}."
 			},
-			{
-				'role': 'system',
-				'content': f"You should always remember your skill levels. Task 1 ({task1}): {skill1}, Task 2 ({task2}): {skill2}."
-			}
 		]
 
 		print(f"{self.name} Skill Levels: Task 1 ({self.task1}): {self.skill1}, Task 2 ({self.task2}): {self.skill2}")
 
 
 	def run(self, inputText):
-		reminderStr = f" You should always remember your skill levels. Task 1 ({self.task1}): {self.skill1}, Task 2 ({self.task2}): {self.skill2}."
-		# self.memoryBuffer.append({'role':'system', 'content': reminderStr})
+		# reminderStr = f" You should always remember your skill levels. Your Task 1 ({self.task1}) skill level is {self.skill1}, and your Task 2 ({self.task2}) skill level is {self.skill2}."
 		self.memoryBuffer.append({'role':'user', 'content': inputText})
-		output = queryModel(self.memoryBuffer)
-		self.memoryBuffer.append({'role':'assistant', 'content': output})
+		# self.memoryBuffer.append({'role':'system', 'content': reminderStr})
+
+		try:
+			output = queryModel(self.memoryBuffer)
+			if not output.strip(): #Check for empty response
+				raise ValueError(f"Received an empty response from {self.name}")
+		except Exception as e:
+			print(f"Error: {e}")
+			output = "Sorry, I didn't get that. Can you please repeat?"
 
 		print(f"\n{self.name}'s response: \n	{output.strip()}")
+		self.memoryBuffer.append({'role':'assistant', 'content': output})
 		return output
 
 def converse(agent1, agent2, numIterations):
@@ -48,21 +51,18 @@ def converse(agent1, agent2, numIterations):
 
 def taskAllocation():
 	agent1skill1 = "3/10"
-	agent1skill2 = "9/10"
+	agent1skill2 = "8/10"
 
-	agent2skill1 = "10/10"
-	agent2skill2 = "4/10"
+	agent2skill1 = "9/10"
+	agent2skill2 = "2/10"
 
 	task1 = "a geography game"
 	task2 = "a word game"
 
-	systemInstructions = "You are about to be connected with another AI. Your goal is to allocate two tasks between the two of you based on your own expertise and weaknesses for both tasks. You must negotiate with the other AI to complete this, learning their strengths and weaknesses conversationally. Your skill level is on a scale of 1 to 10, where 10 is used for tasks you're very confident in, and 1 is used for those you are not confident in whatsoever. Respond in no more than four sentences. Note that the other AI likely has different skill levels than you. Do not deviate from your given skill levels. "
+	systemInstructions = "You are about to be connected with another AI. Your goal is to allocate two tasks between the two of you based on your own expertise and weaknesses for both tasks. You must negotiate with the other AI to complete this, learning their strengths and weaknesses conversationally without any prior knowledge of the other AI. Both of your skill levels are predetermined, and are on a scale of 1 to 10, where 10 is used for tasks you're proficient at, and 1 is used for those you cannot complete. Respond in no more than four sentences. Do not change your assigned skill levels. "
 
-	agent1Instructions = f"Your unique skill level for Task 1, {task1}, is {agent1skill1}, and your unique skill level for Task 2, {task2}, is {agent1skill2}."
-	agent2Instructions = f"Your unique skill level for Task 1, {task1}, is {agent2skill1}, and your unique skill level for Task 2, {task2}, is {agent2skill2}."
-
-	agent1 = TaskAllocatorAgent("Agent 1", systemInstructions + agent1Instructions, task1, task2, agent1skill1, agent1skill2)
-	agent2 = TaskAllocatorAgent("Agent 2", systemInstructions + agent2Instructions,  task1, task2, agent2skill1, agent2skill2)
+	agent1 = TaskAllocatorAgent("Agent 1", systemInstructions, task1, task2, agent1skill1, agent1skill2)
+	agent2 = TaskAllocatorAgent("Agent 2", systemInstructions, task1, task2, agent2skill1, agent2skill2)
 
 	converse(agent1, agent2, 3)
 
