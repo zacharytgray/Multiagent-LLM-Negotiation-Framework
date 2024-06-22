@@ -30,7 +30,7 @@ class TaskAllocatorAgent:
 			},
 		]
 
-		print(f"{self.name} Skill Levels: Task 1 ({self.task1}): {self.skill1}, Task 2 ({self.task2}): {self.skill2}")
+		print(f"{Fore.YELLOW}{self.name} Skill Levels: Task 1 ({self.task1}): {self.skill1}, Task 2 ({self.task2}): {self.skill2}{Fore.RESET}")
 
 
 	def run(self, inputText):
@@ -78,18 +78,19 @@ def taskAllocation():
 	
 	converse(agent1, agent2, 3)
 
-	print("\nAGENT 1 MEMORY BUFFER:")
-	print(f"{agent1.name} Skill Levels: Task 1 ({task1}): {agent1.skill1}, Task 2 ({task2}): {agent1.skill2}\n		")
+	# Print Memory Buffers 
+	print(f"\n{Fore.YELLOW}AGENT 1 MEMORY BUFFER:")
+	print(f"-> {agent1.name} Skill Levels: Task 1 ({task1}): {agent1.skill1}, Task 2 ({task2}): {agent1.skill2}\n		")
 	printMemoryBuffer(agent1)
 
-	print("\nAGENT 2 MEMORY BUFFER:")
-	print(f"{agent2.name} Skill Levels: Task 1 ({task1}): {agent2.skill1}, Task 2 ({task2}): {agent2.skill2}\n		")
+	print(f"\n{Fore.YELLOW}AGENT 2 MEMORY BUFFER:")
+	print(f"-> {agent2.name} Skill Levels: Task 1 ({task1}): {agent2.skill1}, Task 2 ({task2}): {agent2.skill2}\n		")
 	printMemoryBuffer(agent2)
 
 	# Now, assume a consensus has been reached.
-	mediatorInstructions = "Now, based on the conversation you just had, you will provide the apprsopriate task allocation in the following format: {'Agent 1': 'Task X', 'Agent 2': 'Task Y'}, where tasks X and Y are either " + task1 + " or " + task2 + ". Include the brackets in your reponse. Do not reply with anything else. Note that you are Agent 1, and you've been talking to Agent 2."
+	mediatorInstructions = "Now, based on the conversation you just had, you will provide the appropriate task allocation in the following format: {'Agent 1': 'Task X', 'Agent 2': 'Task Y'}, where tasks X and Y are either " + task1 + " or " + task2 + ". Include the brackets in your reponse. Do not reply with anything else. Note that you are Agent 1, and you've been talking to Agent 2."
 	consensus = agent1.run(mediatorInstructions)
-	print(f"\nConsensus: {consensus}")
+	print(f"\n {Fore.YELLOW}Consensus: {consensus} {Fore.RESET}")
 
 def main():
 	taskAllocation()
