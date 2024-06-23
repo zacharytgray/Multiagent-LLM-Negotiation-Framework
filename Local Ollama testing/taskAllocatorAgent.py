@@ -1,7 +1,6 @@
 import ollama
 from colorama import Fore
 
-
 def queryModel(memoryBuffer):
 	response = ollama.chat(model='phi3:medium', messages=memoryBuffer, options = {'temperature': 0.4,})
 	return response['message']['content']
@@ -27,6 +26,7 @@ class TaskAllocatorAgent:
 			{
 				'role': 'system',
 				'content': f"You are about to be connected with another Agent. Your goal is to allocate two tasks between the two of you as efficiently as possible. For each task, you are given unique skill levels. Task 1 is {task1}, and Task 2 is {task2}. Your skill level for Task 1 is {skill1}, and your skill level for Task 2 is {skill2}. These skill levels are on a scale of 1 to 10, where 10 is the best at performing a task, and 1 is no ability to perform the task. The other agent has their own, unique skill levels that you will need to discover through conversation. Note that it is possible for an agent to take on both tasks if their scores are better for both tasks. Negotiate the most optimal and efficient task allocation between the two of you. Whenever you feel like the two of you have agreed on a solution, include the word 'EXIT' in your response. Do not use the word EXIT at all until you are absolutely sure the conversation should end."
+				# 'content': f"You are {name}. Your goal is to allocate two tasks as efficiently as possible. Task 1 is {task1}, and Task 2 is {task2}. Your skill level for Task 1 is {skill1}, and your skill level for Task 2 is {skill2}. These skill levels are on a scale of 1 to 10. Discover the other agent's skill levels through conversation. The other agent has their own skill levels. Include the word 'EXIT' when you agree on a solution."
 			},
 		]
 
@@ -50,6 +50,8 @@ class TaskAllocatorAgent:
 		self.memoryBuffer.append({'role':'assistant', 'content': output})
 		return output
 
+# def allocateTask(agent1, agent2, skill1, skill2, task):
+
 def converse(agent1, agent2):
 	currentInput = "Hello! Let's begin the task allocation. "
 	currentAgent = agent1
@@ -71,7 +73,7 @@ def converse(agent1, agent2):
 		numIterations += 1
 
 def taskAllocation():
-	agent1skill1 = "8"
+	agent1skill1 = "2"
 	agent1skill2 = "3"
 
 	agent2skill1 = "6"
