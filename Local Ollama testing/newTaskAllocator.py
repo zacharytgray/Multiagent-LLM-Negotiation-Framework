@@ -38,14 +38,6 @@ class Agent:
 
 	def addTask(self, task):
 		self.tasks.append(task)
-
-	def clearMemoryBuffer(self):
-		self.memoryBuffer = [
-			{
-				'role': 'system',
-				'content': f"Your name is {self.name}. You are about to be connected to another AI. You will collaborate with a partner to allocate a task as efficiently as possible based on both of your skill levels. Skill levels are on a scale from 1 to 10. Higher skill levels indicate greater proficiency. Initially, you know nothing about your partner's skill level. Conversationally determine the most suitable person for the task. You are not allowed to work together on a task. Be clear and concise. Do not assign yourself a skill rating. {self.name}, "
-			}
-		]
 	
 class Domain:
 	def __init__(self, agent1, agent2) -> None:
