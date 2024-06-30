@@ -89,8 +89,8 @@ class Domain:
 	def assignTask(self, task, skill1, skill2):
 		print("\n" + "="*25 + f" NEW TASK: {task} " + "="*25)
 
-		self.agent1.addToMemoryBuffer('system', f"Your name is {self.agent1.name}. {SYSTEM_INSTRUCTIONS}. your skill level for this task, {task}, is {skill1}")
-		self.agent2.addToMemoryBuffer('system', f"Your name is {self.agent2.name}. {SYSTEM_INSTRUCTIONS}. your skill level for this task, {task}, is {skill2}")
+		self.agent1.addToMemoryBuffer('system', f"NEW TASK: Your name is {self.agent1.name}. {SYSTEM_INSTRUCTIONS}. your skill level for this task, {task}, is {skill1}")
+		self.agent2.addToMemoryBuffer('system', f"NEW TASK: Your name is {self.agent2.name}. {SYSTEM_INSTRUCTIONS}. your skill level for this task, {task}, is {skill2}")
 		
 		currentInput = f"Hello, I am {self.agent2.name}. Let's begin allocating our next task, {task}. "
 		self.agent2.addToMemoryBuffer('assistant', currentInput)
@@ -124,8 +124,8 @@ def main():
 	domain = Domain(agent1, agent2)
 
 	domain.assignTask(task = "a word search", skill1 = 6, skill2 = 4) #agent1 should be assigned
-	# domain.assignTask(task = "a math game", skill1 = 4, skill2 = 6) #agent2 should be assigned
-	# domain.assignTask(task = "a card game", skill1 = 9, skill2 = 7) #agent1 should be assigned
+	domain.assignTask(task = "a math game", skill1 = 4, skill2 = 6) #agent2 should be assigned
+	domain.assignTask(task = "a card game", skill1 = 9, skill2 = 7) #agent1 should be assigned
 
 	domain.printTasks() #agent1 should have "a word search" and "a card game", agent2 should have "a math game"
 
