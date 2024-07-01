@@ -1,7 +1,7 @@
 import ollama
 from colorama import Fore
 
-SYSTEM_INSTRUCTIONS = "You are about to be connected to a partner. You will collaborate with that partner to allocate tasks as efficiently as possible. Skill levels are on a scale from 1 to 10. Higher skill levels indicate greater proficiency. Initially, you know nothing about your partner's skill level. Conversationally determine the most suitable person for the task based only on skill level. Collaboration on a task is forbidden, and only one of you can be assigned a task at a time. Share your given skill levels directly when asked. Be clear and concise."
+SYSTEM_INSTRUCTIONS = "You are about to connect with a partner for task allocation. Your goal is to distribute tasks between you and your partner based on skill levels, which range from 1 to 10, and the current workload. Initially, neither of you knows the other's skill levels. Through discussion, identify who is best suited for each task, considering both skill level and workload. Aim for an equitable distribution of tasks to prevent overburdening either agent. Directly share your skill levels and current number of tasks when requested. Note: Collaboration, working together, or division of labor on a task in any form is strictly forbidden. Your communication should be aimed at deciding task allocation only. Be clear and concise in your discussions."
 
 class Agent:
 	def __init__(self, name) -> None:
@@ -38,6 +38,9 @@ class Agent:
 
 	def addTask(self, task):
 		self.tasks.append(task)
+
+	def numTasks(self):
+		return len(self.tasks)
 	
 class Domain:
 	def __init__(self, agent1, agent2) -> None:
@@ -110,8 +113,8 @@ class Domain:
 	def assignTask(self, task, skill1, skill2):
 		print("\n" + "="*25 + f" NEW TASK: {task} " + "="*25)
 
-		self.agent1.addToMemoryBuffer('system', f"NEW TASK: Your name is {self.agent1.name}. {SYSTEM_INSTRUCTIONS}. your skill level for this task, {task}, is {skill1} out of 10")
-		self.agent2.addToMemoryBuffer('system', f"NEW TASK: Your name is {self.agent2.name}. {SYSTEM_INSTRUCTIONS}. your skill level for this task, {task}, is {skill2} out of 10")
+		self.agent1.addToMemoryBuffer('system', f"NEW TASK: Your name is {self.agent1.name}. {SYSTEM_INSTRUCTIONS}. your skill level for this task, {task}, is {skill1} out of 10. You currently have {self.agent1.numTasks()} tasks.")
+		self.agent2.addToMemoryBuffer('system', f"NEW TASK: Your name is {self.agent2.name}. {SYSTEM_INSTRUCTIONS}. your skill level for this task, {task}, is {skill2} out of 10. You currently have {self.agent2.numTasks()} tasks.")
 		
 		currentInput = f"Hello, I am {self.agent2.name}. Let's begin allocating our next task, {task}. "
 		self.agent2.addToMemoryBuffer('assistant', currentInput)
@@ -145,7 +148,7 @@ def main():
 	agent2 = Agent("Aslaug")
 	domain = Domain(agent1, agent2)
 
-	tasks = [("a word search", 6, 4), ("a math game", 4, 6), ("a card game", 9, 7)] # (task, skill1, skill2)
+	tasks = [("a word search", 6, 4), ("a math game", 7, 5), ("a card game", 5, 4)] # (task, skill1, skill2)
 	for (task, skill1, skill2) in tasks:
 		domain.assignTask(task, skill1, skill2)
 
