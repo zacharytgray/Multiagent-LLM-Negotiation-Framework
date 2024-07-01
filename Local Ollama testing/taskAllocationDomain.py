@@ -86,11 +86,12 @@ class Domain:
 	def interruptConversation(self): #interrupt the conversation to allow the user to talk to agents directly
 		#Type 1 to talk to agent 1
 		#Type 2 to talk to agent 2
-		#Type c to continue conversation
 		#Type mb to see memory buffer
+		#Type c to continue conversation
+
 		userInput = ""
 		while userInput.lower() != "c":
-			userInput = input(f"\n{Fore.GREEN}What would you like to do? (1, 2, c, mb): {Fore.RESET}")
+			userInput = input(f"\n{Fore.GREEN}What would you like to do? (1, 2, mb, c): {Fore.RESET}")
 			if userInput != "c":
 				if userInput == "1": #user wants to talk to agent 1
 					userInput = input(f"Chat to Agent 1 ({self.agent1.name}): ")
@@ -113,7 +114,6 @@ class Domain:
 		self.agent2.addToMemoryBuffer('system', f"NEW TASK: Your name is {self.agent2.name}. {SYSTEM_INSTRUCTIONS}. your skill level for this task, {task}, is {skill2} out of 10")
 		
 		currentInput = f"Hello, I am {self.agent2.name}. Let's begin allocating our next task, {task}. "
-
 		self.agent2.addToMemoryBuffer('assistant', currentInput)
 	
 		currentAgent = self.agent1
@@ -129,14 +129,13 @@ class Domain:
 				if i == 2: # Manually add final dialogue to agent 2
 					self.agent2.addToMemoryBuffer('user', currentInput)
 
-				# self.interruptConversation() # uncomment to allow user to talk to agents directly inbetween messages or see memory buffers live
+				# uncomment to allow user to talk to agents directly inbetween messages or see memory buffers live
+				# self.interruptConversation() 
 			
 			consensus = self.getConsensus(task)
 			if consensus[0]: # If agents agree on who should be assigned the task, end loop
 				consensusReached = True
 			else: # Make agents forget about consensus and encourage them to continue discussion
-				# self.agent1.run("system", f"You both disagreed on who should get the task. You voted {consensus[1]}, and {self.agent2.name} voted {consensus[2]}. Continue discussion over the task ({task}) and consider reevaluating your decision based on skill level.")
-				# self.agent2.run("system", f"You both disagreed on who should get the task. {self.agent1.name} voted {consensus[1]}, and you voted {consensus[2]}. Continue discussion over the task ({task}) and consider reevaluating your decision based on skill level.")
 				self.agent1.addToMemoryBuffer('system', f"You both disagreed on who should get the task. You voted {consensus[1]}, and {self.agent2.name} voted {consensus[2]}. Continue discussion over the task ({task}) and consider reevaluating your decision based on skill level.")
 				self.agent2.addToMemoryBuffer('system', f"You both disagreed on who should get the task. {self.agent1.name} voted {consensus[1]}, and you voted {consensus[2]}. Continue discussion over the task ({task}) and consider reevaluating your decision based on skill level.")
 
