@@ -1,7 +1,15 @@
 import ollama
 from colorama import Fore
 
-SYSTEM_INSTRUCTIONS = "You are about to connect with a partner for task allocation. Your goal is to distribute tasks between you and your partner based on skill levels, which range from 1 to 10, and the current workload. Initially, neither of you knows the other's skill levels. Through discussion, identify who is best suited for each task, considering both skill level and workload. Aim for an equitable distribution of tasks to prevent overburdening either agent. Directly share your skill levels and current number of tasks when requested. Note: Collaboration, working together, or division of labor on a task in any form is strictly forbidden. Your communication should be aimed at deciding task allocation only. Be clear and concise in your discussions."
+SYSTEM_INSTRUCTIONS = """You are about to connect with a partner for task allocation. 
+Your goal is to distribute tasks between you and your partner based on skill levels, which range from 1 to 10, and the current workload. 
+Initially, neither of you knows the other's skill levels. 
+Through discussion, identify who is best suited for each task, considering both skill level and workload. 
+Aim for an equitable distribution of tasks to prevent overburdening either agent. 
+Directly share your skill levels and current number of tasks when requested.
+Note: Collaboration, working together, or division of labor on a task in any form is strictly forbidden. 
+Your communication should be aimed at deciding task allocation only. 
+Be clear and concise in your discussions."""
 
 class Agent:
 	def __init__(self, name) -> None:
@@ -111,7 +119,7 @@ class Domain:
 					print("Pass...")
 
 	def assignTask(self, task, skill1, skill2):
-		print("\n" + "="*25 + f" NEW TASK: {task} " + "="*25)
+		print("\n" + "="*25 + f" NEW TASK: {task.upper()} " + "="*25)
 
 		self.agent1.addToMemoryBuffer('system', f"NEW TASK: Your name is {self.agent1.name}. {SYSTEM_INSTRUCTIONS}. your skill level for this task, {task}, is {skill1} out of 10. You currently have {self.agent1.numTasks()} tasks.")
 		self.agent2.addToMemoryBuffer('system', f"NEW TASK: Your name is {self.agent2.name}. {SYSTEM_INSTRUCTIONS}. your skill level for this task, {task}, is {skill2} out of 10. You currently have {self.agent2.numTasks()} tasks.")
@@ -125,7 +133,11 @@ class Domain:
 		while not consensusReached:
 			for i in range(3):
 				response = currentAgent.run("user", currentInput)
-				print(f"\n{currentAgent.name}'s response: \n	{response.strip()}")
+				if currentAgent == self.agent1:
+					print(f"{Fore.CYAN}\n{currentAgent.name}: \n	{response.strip()}{Fore.RESET}")
+				elif currentAgent == self.agent2:
+					print(f"{Fore.GREEN}\n{currentAgent.name}: \n	{response.strip()}{Fore.RESET}")
+
 				currentAgent = self.agent2 if currentAgent == self.agent1 else self.agent1
 				currentInput = response
 
@@ -142,13 +154,12 @@ class Domain:
 				self.agent1.addToMemoryBuffer('system', f"You both disagreed on who should get the task. You voted {consensus[1]}, and {self.agent2.name} voted {consensus[2]}. Continue discussion over the task ({task}) and consider reevaluating your decision based on skill level.")
 				self.agent2.addToMemoryBuffer('system', f"You both disagreed on who should get the task. {self.agent1.name} voted {consensus[1]}, and you voted {consensus[2]}. Continue discussion over the task ({task}) and consider reevaluating your decision based on skill level.")
 
-		
 def main():
-	agent1 = Agent("Igor")
-	agent2 = Agent("Aslaug")
+	agent1 = Agent("Finn")
+	agent2 = Agent("Jake")
 	domain = Domain(agent1, agent2)
 
-	tasks = [("a word search", 6, 4), ("a math game", 7, 5), ("a card game", 5, 4)] # (task, skill1, skill2)
+	tasks = [("a word search", 7, 4), ("a math game", 5, 2), ("a card game", 6, 6)] # (task, skill1, skill2)
 	for (task, skill1, skill2) in tasks:
 		domain.assignTask(task, skill1, skill2)
 
