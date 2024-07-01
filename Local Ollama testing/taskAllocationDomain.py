@@ -1,7 +1,6 @@
 import ollama
 from colorama import Fore
 
-# SYSTEM_INSTRUCTIONS = "You are about to be connected to a partner. You will collaborate with that partner to allocate tasks as efficiently as possible solely based on both of your skill levels. Skill levels are on a scale from 1 to 10. Higher skill levels indicate greater proficiency. Initially, you know nothing about your partner's skill level. Conversationally determine the most suitable person for the task based on skill level. You are not allowed to work together on a task. Be clear and concise. Share your given skill levels directly when asked, and do not discuss your abilities."
 SYSTEM_INSTRUCTIONS = "You are about to be connected to a partner. You will collaborate with that partner to allocate tasks as efficiently as possible. Skill levels are on a scale from 1 to 10. Higher skill levels indicate greater proficiency. Initially, you know nothing about your partner's skill level. Conversationally determine the most suitable person for the task based only on skill level. Collaboration on a task is forbidden, and only one of you can be assigned a task at a time. Share your given skill levels directly when asked. Be clear and concise."
 
 class Agent:
@@ -114,6 +113,7 @@ class Domain:
 		self.agent2.addToMemoryBuffer('system', f"NEW TASK: Your name is {self.agent2.name}. {SYSTEM_INSTRUCTIONS}. your skill level for this task, {task}, is {skill2} out of 10")
 		
 		currentInput = f"Hello, I am {self.agent2.name}. Let's begin allocating our next task, {task}. "
+
 		self.agent2.addToMemoryBuffer('assistant', currentInput)
 	
 		currentAgent = self.agent1
@@ -129,31 +129,30 @@ class Domain:
 				if i == 2: # Manually add final dialogue to agent 2
 					self.agent2.addToMemoryBuffer('user', currentInput)
 
-				self.interruptConversation() # uncomment to allow user to talk to agents directly inbetween messages
+				# self.interruptConversation() # uncomment to allow user to talk to agents directly inbetween messages or see memory buffers live
 			
 			consensus = self.getConsensus(task)
 			if consensus[0]: # If agents agree on who should be assigned the task, end loop
 				consensusReached = True
 			else: # Make agents forget about consensus and encourage them to continue discussion
-				# self.agent1.memoryBuffer = self.agent1.memoryBuffer[:-2]
-				# self.agent2.memoryBuffer = self.agent2.memoryBuffer[:-2]
-				self.agent1.run("system", f"You both disagreed on who should get the task. You voted {consensus[1]}, and {self.agent2.name} voted {consensus[2]}. Continue discussion over the task ({task}) and consider reevaluating your decision based on skill level.")
-				self.agent2.run("system", f"You both disagreed on who should get the task. {self.agent1.name} voted {consensus[1]}, and you voted {consensus[2]}. Continue discussion over the task ({task}) and consider reevaluating your decision based on skill level.")
+				# self.agent1.run("system", f"You both disagreed on who should get the task. You voted {consensus[1]}, and {self.agent2.name} voted {consensus[2]}. Continue discussion over the task ({task}) and consider reevaluating your decision based on skill level.")
+				# self.agent2.run("system", f"You both disagreed on who should get the task. {self.agent1.name} voted {consensus[1]}, and you voted {consensus[2]}. Continue discussion over the task ({task}) and consider reevaluating your decision based on skill level.")
+				self.agent1.addToMemoryBuffer('system', f"You both disagreed on who should get the task. You voted {consensus[1]}, and {self.agent2.name} voted {consensus[2]}. Continue discussion over the task ({task}) and consider reevaluating your decision based on skill level.")
+				self.agent2.addToMemoryBuffer('system', f"You both disagreed on who should get the task. {self.agent1.name} voted {consensus[1]}, and you voted {consensus[2]}. Continue discussion over the task ({task}) and consider reevaluating your decision based on skill level.")
+
 		
 def main():
 	agent1 = Agent("Igor")
 	agent2 = Agent("Aslaug")
 	domain = Domain(agent1, agent2)
 
-	domain.assignTask(task = "a word search", skill1 = 6, skill2 = 4) #agent1 should be assigned
-	domain.assignTask(task = "a math game", skill1 = 4, skill2 = 6) #agent2 should be assigned
-	domain.assignTask(task = "a card game", skill1 = 9, skill2 = 7) #agent1 should be assigned
-	domain.assignTask(task = "a country guessing game", skill1 = 1, skill2 = 2) #agent2 should be assigned
+	tasks = [("a word search", 6, 4), ("a math game", 4, 6), ("a card game", 9, 7)] # (task, skill1, skill2)
+	for (task, skill1, skill2) in tasks:
+		domain.assignTask(task, skill1, skill2)
 
-	domain.printTasks() #agent1 should have "a word search" and "a card game", agent2 should have "a math game"
-
-	agent1.printMemoryBuffer(otherAgent = agent2)
-	agent2.printMemoryBuffer(otherAgent = agent1)
+	domain.printTasks()
+	# agent1.printMemoryBuffer(otherAgent = agent2)
+	# agent2.printMemoryBuffer(otherAgent = agent1)
 
 if __name__ == main():
 	main()
