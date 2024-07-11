@@ -18,6 +18,7 @@ Rules:
 - Compare skill levels to assign tasks efficiently.
 - Your assigned skill levels are permanently set, and you must not change them. When asked for your skill level for a task, you must provide the value given in the following section, "Tasks to Allocate".
 - You must allocate all of the assigned tasks.
+- Do not include any new line characters in your responses unless prompted to do so.
 
 Remember: It's always a good idea to share your skill levels with your partner.
 
@@ -106,8 +107,8 @@ Where 'AGENT_NAME_FOR_THIS_TASK' is the name of the agent you think should be as
 				agreedIndex.append(False)
 		if False in agreedIndex:
 			print(f"\n{Fore.RED}Consensus not reached: {agreedIndex}{Fore.RESET}")
-			self.agent1.run("system", "Consensus not reached. Please continue discussion until you converge to the same allocations.")
-			self.agent2.run("system", "Consensus not reached. Please continue discussion until you converge to the same allocations.")
+			self.agent1.run("system", "Consensus not reached. Please continue discussing the task allocation until you are asked to vote again.")
+			self.agent2.run("system", "Consensus not reached. Please continue discussing the task allocation until you are asked to vote again.")
 			return False
 		else:
 			for i, task in enumerate(self.tasks): # assign tasks based on consensus
@@ -146,7 +147,7 @@ Where 'AGENT_NAME_FOR_THIS_TASK' is the name of the agent you think should be as
 					print("Pass...")
 
 	def assignTasks(self):
-		numIterations = 4
+		numIterations = 6
 		self.agent1.addToMemoryBuffer('system', self.agent1.systemInstructions)
 		self.agent2.addToMemoryBuffer('system', self.agent2.systemInstructions)
 		
@@ -177,13 +178,11 @@ Where 'AGENT_NAME_FOR_THIS_TASK' is the name of the agent you think should be as
 			consensusReached = self.getConsensus()
 
 		self.printTasks()
-			
-
 
 def main():
 	agent1 = Agent("Finn")
 	agent2 = Agent("Jake")
-	tasks = [("Word search", 6, 4), ("Math game", 2, 8), ("Geography game", 9, 3),]
+	tasks = [("Word search", 6, 4), ("Math game", 8, 2), ("Geography game", 9, 3), ("Trivia", 7, 5), ("Puzzle", 6, 3)]
 	domain = Domain(agent1, agent2, tasks)
 	domain.assignTasks()
 
