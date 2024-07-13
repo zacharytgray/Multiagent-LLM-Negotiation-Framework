@@ -1,26 +1,46 @@
 import ollama
 from colorama import Fore
 
+def logMemoryBuffer(fileName, agent1, agent2):
+		with open(fileName, "a") as f:
+			f.write("Memory Buffer:\n")
+			for dict in agent1.memoryBuffer:
+				# if dict.get('role') == 'system':
+				# 	f.write(f"System: {dict.get('content')}\n")
+				if dict.get('role') == 'user':
+					f.write(f"\n{agent2.name} (User): {dict.get('content')}\n")
+				elif dict.get('role') == 'assistant':
+					f.write(f"\n{agent1.name} (Assistant): {dict.get('content')}\n")
+
+		f.close()
+
+def logAssignedTasks(fileName, agent1, agent2):
+	f = open(fileName, "a")
+	f.write(f"\n{agent1.name}'s tasks: {agent1.assignedTasks}\n")
+	f.write(f"{agent2.name}'s tasks: {agent2.assignedTasks}\n")
+	f.close()
+
 class Agent:
 	def __init__(self, name) -> None: # tasks are (task, skill) tuples
 		self.name = name
 		self.temperature = 0.4
 		self.assignedTasks = []
+		self.numTokensGenerated = 0
 		self.model = 'gemma2:latest'
 		self.memoryBuffer = []
 		self.systemInstructions = f"""
 Your name is {self.name}. You will collaboratively allocate tasks with a partner based on two factors:
 1. Skill Levels: use a scale from 1 (least skill) to 10 (highest skill). You will report your skill level for each task. Initially, you won't know your partner's skill levels.
-2. Balanced Workload: Aim to distribute tasks evenly to avoid overloading one person.
+2. Balanced Workload: Aim to distribute tasks evenly to avoid overloading one person. A balanced workload simplu refers to the number of tasks each agent has, not the task difficulty.
 
 Rules:
-- Collaboration on tasks is forbidden. That is, only one of you should be assigned to each task. 
+- Collaboration or splitting a task is forbidden. That is, only one of you should be assigned to each task. 
 - Compare skill levels to assign tasks efficiently.
 - Your assigned skill levels are permanently set, and you must not change them. When asked for your skill level for a task, you must provide the value given in the following section, "Tasks to Allocate".
 - You must allocate all of the assigned tasks.
-- Do not include any new line characters in your responses unless prompted to do so.
-
-Remember: It's always a good idea to share your skill levels with your partner.
+- Think independently. Come up with your own allocations, share them with your partner, and build on each other's ideas. Be critical of your partner's suggestions.
+- It's always a good idea to share your skill levels with your partner
+- If one agent is more skilled than the other at Task X, the more skilled agent should be assigned Task X unless the workload seems unbalanced.
 
 Tasks to Allocate:"""
 
@@ -29,6 +49,7 @@ Tasks to Allocate:"""
 
 	def queryModel(self):
 		response = ollama.chat(model=self.model, messages=self.memoryBuffer, options = {'temperature': self.temperature,})
+		self.numTokensGenerated += response['eval_count']
 		return response['message']['content'].strip()
 	
 	def run(self, role, inputText):
@@ -36,7 +57,7 @@ Tasks to Allocate:"""
 		response = self.queryModel()
 		self.addToMemoryBuffer('assistant', response)
 		if not response:
-			print(f"{Fore.RED}Error: No response from model. Response: '{response}' {Fore.RESET}")
+			print(f"{Fore.RED}Error: No response from {self.name}.{Fore.RESET}")
 		return response
 	
 	def printMemoryBuffer(self, otherAgent):
@@ -63,6 +84,7 @@ class Domain:
 		self.agent1 = agent1
 		self.agent2 = agent2
 		self.tasks = tasks
+		self.numConversationIterations = 0
 		for i, task in enumerate(self.tasks, start=1):
 			taskDescription, skill1, skill2 = task
 			agent1.systemInstructions +=  f"\n- {taskDescription}: {agent1.name}'s skill level for this task is {skill1} out of 10."
@@ -78,11 +100,12 @@ Rules:
 - You must respond in the following manner:\n"""
 		for task in self.tasks:
 			taskDescription = task[0]
-			consensusString += f"\n{taskDescription}:AGENT_NAME_FOR_THIS_TASK"
+			consensusString += f"\n{taskDescription}:AGENT NAME"
 		
 		consensusString += f"""\n
-Where 'AGENT_NAME_FOR_THIS_TASK' is the name of the agent you think should be assigned that task.
-- Do not respond with anything other than what's shown above.
+Where 'AGENT NAME' is the name of the agent you think should be assigned that task.
+- Do not respond with anything other than what's shown above. Do not include bullet points or any other text in your response.
+- Remember: Collaboration is not an option. Only enter either '{self.agent1.name.lower()}' or '{self.agent2.name.lower()}' for each task.
 """
 		rawConsensus1 = self.agent1.run("system", consensusString).strip().lower()
 		rawConsensus2 = self.agent2.run("system", consensusString).strip().lower()
@@ -106,9 +129,16 @@ Where 'AGENT_NAME_FOR_THIS_TASK' is the name of the agent you think should be as
 			else:
 				agreedIndex.append(False)
 		if False in agreedIndex:
-			print(f"\n{Fore.RED}Consensus not reached: {agreedIndex}{Fore.RESET}")
-			self.agent1.run("system", "Consensus not reached. Please continue discussing the task allocation until you are asked to vote again.")
-			self.agent2.run("system", "Consensus not reached. Please continue discussing the task allocation until you are asked to vote again.")
+			print(f"\n{Fore.RED}Consensus not reached: {agreedIndex}")
+
+			print("Agent 1 Choices: ")
+			print(agent1Choices)
+			print("Agent 2 Choices: ")
+			print(agent2Choices)
+			print(Fore.RESET)
+
+			self.agent1.addToMemoryBuffer("system", f"You and your partner disagreed on the task allocation. Restate your skill levels for each task and reevaluate your decisions conversationally.")
+			self.agent2.addToMemoryBuffer("system", f"You and your partner disagreed on the task allocation. Restate your skill levels for each task and reevaluate your decisions conversationally.")
 			return False
 		else:
 			for i, task in enumerate(self.tasks): # assign tasks based on consensus
@@ -122,6 +152,7 @@ Where 'AGENT_NAME_FOR_THIS_TASK' is the name of the agent you think should be as
 		print(f"\n{Fore.YELLOW}{self.agent1.name}'s tasks: {self.agent1.assignedTasks}")
 		print(f"{self.agent2.name}'s tasks: {self.agent2.assignedTasks}{Fore.RESET}")
 	
+
 	def interruptConversation(self): #interrupt the conversation to allow the user to talk to agents directly
 		#Type 1 to talk to agent 1
 		#Type 2 to talk to agent 2
@@ -147,7 +178,7 @@ Where 'AGENT_NAME_FOR_THIS_TASK' is the name of the agent you think should be as
 					print("Pass...")
 
 	def assignTasks(self):
-		numIterations = 6
+		numIterations = 4
 		self.agent1.addToMemoryBuffer('system', self.agent1.systemInstructions)
 		self.agent2.addToMemoryBuffer('system', self.agent2.systemInstructions)
 		
@@ -168,6 +199,7 @@ Where 'AGENT_NAME_FOR_THIS_TASK' is the name of the agent you think should be as
 
 				currentAgent = self.agent2 if currentAgent == self.agent1 else self.agent1
 				currentInput = response
+				self.numConversationIterations += 1
 
 				if i == (numIterations-1): # Manually add final dialogue to agent 2
 					self.agent2.addToMemoryBuffer('user', currentInput)
@@ -177,18 +209,12 @@ Where 'AGENT_NAME_FOR_THIS_TASK' is the name of the agent you think should be as
 
 			consensusReached = self.getConsensus()
 
-		self.printTasks()
-
 def main():
 	agent1 = Agent("Finn")
 	agent2 = Agent("Jake")
-	tasks = [("Word search", 6, 4), ("Math game", 8, 2), ("Geography game", 9, 3), ("Trivia", 7, 5), ("Puzzle", 6, 3)]
+	tasks = [("Task 1", 6, 4), ("Task 2", 8, 2), ("Task 3", 9, 3), ("Task 4", 7, 5)]
 	domain = Domain(agent1, agent2, tasks)
 	domain.assignTasks()
 
-	# agent1.printMemoryBuffer(otherAgent = agent2)
-	# agent2.printMemoryBuffer(otherAgent = agent1)
-
-if __name__ == main():
-	
-	main()
+	agent1.printMemoryBuffer(otherAgent = agent2)
+	agent2.printMemoryBuffer(otherAgent = agent1)
