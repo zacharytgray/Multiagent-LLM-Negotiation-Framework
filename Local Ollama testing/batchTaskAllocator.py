@@ -31,16 +31,16 @@ class Agent:
 		self.systemInstructions = f"""
 Your name is {self.name}. You will collaboratively allocate tasks with a partner based on two factors:
 1. Skill Levels: use a scale from 1 (least skill) to 10 (highest skill). You will report your skill level for each task. Initially, you won't know your partner's skill levels.
-2. Balanced Workload: Aim to distribute tasks evenly to avoid overloading one person. A balanced workload simplu refers to the number of tasks each agent has, not the task difficulty.
+2. Balanced Workload: Aim to distribute tasks evenly to avoid overloading one person. A balanced workload simply refers to the number of tasks each agent has, not the task difficulty.
 
 Rules:
-- Collaboration or splitting a task is forbidden. That is, only one of you should be assigned to each task. 
+- Collaboration or splitting any task is forbidden. That is, only one of you should be assigned to each task. 
 - Compare skill levels to assign tasks efficiently.
 - Your assigned skill levels are permanently set, and you must not change them. When asked for your skill level for a task, you must provide the value given in the following section, "Tasks to Allocate".
 - You must allocate all of the assigned tasks.
-- Think independently. Come up with your own allocations, share them with your partner, and build on each other's ideas. Be critical of your partner's suggestions.
+- Think independently. Come up with your own allocations, share them with your partner, and build on each other's ideas. Be critical of your partner's suggestions they don't follow the rules.
 - It's always a good idea to share your skill levels with your partner
-- If one agent is more skilled than the other at Task X, the more skilled agent should be assigned Task X unless the workload seems unbalanced.
+- When you're considering a task, think about your skill level and your partner's skill level for that task. If your skill level is higher for that task, you should probably take it.
 
 Tasks to Allocate:"""
 
@@ -137,8 +137,15 @@ Where 'AGENT NAME' is the name of the agent you think should be assigned that ta
 			print(agent2Choices)
 			print(Fore.RESET)
 
-			self.agent1.addToMemoryBuffer("system", f"You and your partner disagreed on the task allocation. Restate your skill levels for each task and reevaluate your decisions conversationally.")
-			self.agent2.addToMemoryBuffer("system", f"You and your partner disagreed on the task allocation. Restate your skill levels for each task and reevaluate your decisions conversationally.")
+			disagreedTasks = []
+			for i, consensus in enumerate(agreedIndex):
+				if not consensus:
+					disagreedTasks.append(self.tasks[i][0])	
+			disagreedString = ', '.join(disagreedTasks)
+
+			self.agent1.addToMemoryBuffer("system", f"You and your partner disagreed on the following task or tasks: {disagreedString}. Reevaluate your decisions conversationally. You must answer with either {self.agent1.name.lower()} or {self.agent2.name.lower()} for each task.")
+			self.agent2.addToMemoryBuffer("system", f"You and your partner disagreed on the following task or tasks: {disagreedString}. Reevaluate your decisions conversationally. You must answer with either {self.agent1.name.lower()} or {self.agent2.name.lower()} for each task.")
+
 			return False
 		else:
 			for i, task in enumerate(self.tasks): # assign tasks based on consensus
@@ -178,7 +185,7 @@ Where 'AGENT NAME' is the name of the agent you think should be assigned that ta
 					print("Pass...")
 
 	def assignTasks(self):
-		numIterations = 4
+		numIterations = len(self.tasks)
 		self.agent1.addToMemoryBuffer('system', self.agent1.systemInstructions)
 		self.agent2.addToMemoryBuffer('system', self.agent2.systemInstructions)
 		
