@@ -28,19 +28,39 @@ class Agent:
 		self.numTokensGenerated = 0
 		self.model = 'gemma2:latest'
 		self.memoryBuffer = []
+# 		self.systemInstructions = f"""
+# Your name is {self.name}. You will collaboratively and conversationally allocate tasks with a partner based on skill level.
+# Skill levels use a scale from 1 (least skill) to 10 (highest skill). You will report your skill level for each task. Initially, you won't know your partner's skill levels.
+
+# Rules:
+# - Compare skill levels to assign tasks optimally.
+# - One partner cannot end up with more tasks than the other. Ensure an even split.
+# - Collaboration or splitting any task is forbidden.
+# - Your assigned skill levels are permanently set, and you must not change them. When asked for your skill level for a task, you must provide the value given in the following section, "Tasks to Allocate".
+# - You must allocate all of the assigned tasks.
+# - Be critical of your partner's suggestions if they don't follow the rules.
+# - Ensure that you and your partner end up with tasks that you have a higher skill level for. If this is not possible with the even distribution constraint, try to maximize your optimization the best that you can.
+
+# Tasks to Allocate:"""
 		self.systemInstructions = f"""
-Your name is {self.name}. You will collaboratively allocate tasks with a partner based on two factors:
-1. Skill Levels: use a scale from 1 (least skill) to 10 (highest skill). You will report your skill level for each task. Initially, you won't know your partner's skill levels.
-2. Balanced Workload: Aim to distribute tasks evenly to avoid overloading one person. A balanced workload simply refers to the number of tasks each agent has, not the task difficulty.
+Your name is {self.name}. You will collaboratively and conversationally allocate tasks with a partner based on skill level.
+Skill levels use a scale from 1 (least skill) to 10 (highest skill). You will report your skill level for each task. Initially, you won't know your partner's skill levels.
 
 Rules:
-- Collaboration or splitting any task is forbidden. That is, only one of you should be assigned to each task. 
-- Compare skill levels to assign tasks efficiently.
+- Compare skill levels to assign tasks optimally.
+- One partner cannot end up with more tasks than the other. Ensure an even split.
+- Collaboration or splitting any task is forbidden.
 - Your assigned skill levels are permanently set, and you must not change them. When asked for your skill level for a task, you must provide the value given in the following section, "Tasks to Allocate".
 - You must allocate all of the assigned tasks.
-- Think independently. Come up with your own allocations, share them with your partner, and build on each other's ideas. Be critical of your partner's suggestions they don't follow the rules.
-- It's always a good idea to share your skill levels with your partner
-- When you're considering a task, think about your skill level and your partner's skill level for that task. If your skill level is higher for that task, you should probably take it.
+- Be critical of your partner's suggestions if they don't follow the rules.
+- Ensure that you and your partner end up with tasks that you have a higher skill level for. If this is not possible with the even distribution constraint, try to maximize your optimization the best that you can.
+
+Strategy for Task Allocation:
+1. **Initial Exchange**: Begin by exchanging your skill levels for all tasks with your partner.
+2. **Identify Best Fits**: Individually identify which tasks you have a significantly higher skill level for compared to your partner.
+3. **Propose Allocations**: Propose a preliminary allocation of tasks where you take on the tasks you are best suited for and your partner does the same.
+4. **Negotiate**: If there is a conflict where both you and your partner want the same tasks, negotiate by comparing the difference in skill levels. Try to allocate tasks such that the overall skill optimization is maximized.
+5. **Finalize Allocation**: Ensure that both you and your partner end up with an even number of tasks. Make any necessary adjustments to balance the task distribution while minimizing the impact on skill optimization.
 
 Tasks to Allocate:"""
 
@@ -106,6 +126,7 @@ Rules:
 Where 'AGENT NAME' is the name of the agent you think should be assigned that task.
 - Do not respond with anything other than what's shown above. Do not include bullet points or any other text in your response.
 - Remember: Collaboration is not an option. Only enter either '{self.agent1.name.lower()}' or '{self.agent2.name.lower()}' for each task.
+- There must be an even split of tasks. One partner cannot have more tasks assigned than the other.
 """
 		rawConsensus1 = self.agent1.run("system", consensusString).strip().lower()
 		rawConsensus2 = self.agent2.run("system", consensusString).strip().lower()
@@ -114,6 +135,8 @@ Where 'AGENT NAME' is the name of the agent you think should be assigned that ta
 		agreedIndex = [] #list of indices where the agents agree on who should be assigned the task. True is agree, False is disagree
 		agent1Choices = []
 		agent2Choices = []
+		self.agent1.assignedTasks = []
+		self.agent2.assignedTasks = []
 
 		# Consensus Logic:
 		for i, task in enumerate(self.tasks):
@@ -143,6 +166,8 @@ Where 'AGENT NAME' is the name of the agent you think should be assigned that ta
 					disagreedTasks.append(self.tasks[i][0])	
 			disagreedString = ', '.join(disagreedTasks)
 
+			self.agent1.memoryBuffer = self.agent1.memoryBuffer[:-2] # remove last 2 messages
+			self.agent2.memoryBuffer = self.agent2.memoryBuffer[:-2]
 			self.agent1.addToMemoryBuffer("system", f"You and your partner disagreed on the following task or tasks: {disagreedString}. Reevaluate your decisions conversationally. You must answer with either {self.agent1.name.lower()} or {self.agent2.name.lower()} for each task.")
 			self.agent2.addToMemoryBuffer("system", f"You and your partner disagreed on the following task or tasks: {disagreedString}. Reevaluate your decisions conversationally. You must answer with either {self.agent1.name.lower()} or {self.agent2.name.lower()} for each task.")
 
@@ -215,6 +240,22 @@ Where 'AGENT NAME' is the name of the agent you think should be assigned that ta
 				# self.interruptConversation() 
 
 			consensusReached = self.getConsensus()
+
+			if consensusReached and (len(self.agent1.assignedTasks) != len(self.agent2.assignedTasks)):
+				consensusReached = False
+				print(f"\n{Fore.RED}Error: Tasks not evenly split between agents.")
+				print(f"{self.agent1.name}'s tasks: {self.agent1.assignedTasks}")
+				print(f"{self.agent2.name}'s tasks: {self.agent2.assignedTasks}{Fore.RESET}")
+				self.agent1.memoryBuffer = self.agent1.memoryBuffer[:-2] # remove last 2 messages
+				self.agent2.memoryBuffer = self.agent2.memoryBuffer[:-2]
+				delta = abs(len(self.agent1.assignedTasks) - len(self.agent2.assignedTasks))
+				if len(self.agent1.assignedTasks) > len(self.agent2.assignedTasks):
+					self.agent1.addToMemoryBuffer("system", f"You and your partner did not split the tasks evenly. {self.agent1.name} was assigned {delta} more task(s) than {self.agent2.name}. Reevaluate your decisions conversationally until each of you has {len(self.tasks)/2} tasks assigned.")
+					self.agent2.addToMemoryBuffer("system", f"You and your partner did not split the tasks evenly. {self.agent1.name} was assigned {delta} more task(s) than {self.agent2.name}. Reevaluate your decisions conversationally until each of you has {len(self.tasks)/2} tasks assigned.")
+				else:
+					self.agent1.addToMemoryBuffer("system", f"You and your partner did not split the tasks evenly. {self.agent2.name} was assigned {delta} more task(s) than {self.agent1.name}. Reevaluate your decisions conversationally until each of you has {len(self.tasks)/2} tasks assigned.")
+					self.agent2.addToMemoryBuffer("system", f"You and your partner did not split the tasks evenly. {self.agent2.name} was assigned {delta} more task(s) than {self.agent1.name}. Reevaluate your decisions conversationally until each of you has {len(self.tasks)/2} tasks assigned.")
+
 
 def main():
 	agent1 = Agent("Finn")

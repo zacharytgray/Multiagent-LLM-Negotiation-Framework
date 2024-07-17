@@ -5,31 +5,48 @@ import time
 
 class TestAgent(unittest.TestCase):
 
+    def getOptimalAllocation(self, tasks):
+        n = len(tasks) // 2
+        dp = [[-1 for _ in range(n+1)] for _ in range(len(tasks)+1)]
+        backtrack = [[None for _ in range(n+1)] for _ in range(len(tasks)+1)] #backtrack[i][j] helps to reconstruct the solution. It stores a tuple indicating the previous state and which agent took the task.
 
-    def calculateSUS(self, tasks, agent1Tasks, agent2Tasks):
-        score = 0
-        baseline = 0
-
-        for task, skill1, skill2 in tasks:
-            baseline += abs(skill1 - skill2)
-            
-            if (task, skill1, skill2) in agent1Tasks:
-                score += (skill1 - skill2)
-            elif (task, skill1, skill2) in agent2Tasks:
-                score += (skill2 - skill1)
-
-        # Normalize the score
-        normalized_score = score / baseline if score > 0 else 0
-
-        # Calculate task distribution factor
-        # Calculate workload balance factor
-        WorkloadBalanceFactor = 1 - (abs(len(agent1Tasks) - len(agent2Tasks)) / len(tasks))
-        # WorkloadBalanceFactor = 2 * (1 - (abs(len(agent1Tasks) - len(agent2Tasks)) / len(tasks))) - 1 # Normalize to [-1 (worst balance), 1 (perfect balance)]
+        dp[0][0] = 0 #dp[i][j] keeps the maximum skill sum we can achieve for agent 1 considering the first i tasks and allocating j tasks to agent 1.
 
 
-        # Combine normalized score and task distribution factor
-        SUS = (normalized_score * WorkloadBalanceFactor) * 100 if baseline > 0 else 0
-        return SUS
+        for i in range(1, len(tasks)+1): # Loop through each task and update the dp and backtrack tables.
+            for j in range(n+1):
+                if j > 0 and dp[i-1][j-1] != -1: #If adding the current task to agent 1 improves the skill sum, update the dp table accordingly.
+                    val = dp[i-1][j-1] + tasks[i-1][1]
+                    if val > dp[i][j]:
+                        dp[i][j] = val
+                        backtrack[i][j] = (i-1, j-1, True)
+                if dp[i-1][j] != -1: # Similarly, check if adding the current task to agent 2 improves the skill sum.
+                    val = dp[i-1][j] + tasks[i-1][2]
+                    if val > dp[i][j]:
+                        dp[i][j] = val
+                        backtrack[i][j] = (i-1, j, False)
+
+        agent1_tasks, agent2_tasks = [], []
+        i, j = len(tasks), n
+
+        while i > 0: # Start from the last task and backtrack to determine which tasks were allocated to each agent.
+            if backtrack[i][j][2]:
+                agent1_tasks.append(tasks[backtrack[i][j][0]])
+                i, j = backtrack[i][j][0], backtrack[i][j][1]
+            else:
+                agent2_tasks.append(tasks[backtrack[i][j][0]])
+                i = backtrack[i][j][0]
+
+        return agent1_tasks, agent2_tasks # After backtracking, we get the tasks allocated to each agent.
+                  
+    def hasOptimalAllocation(self, agent1Tasks, agent2Tasks, optimalAgent1Tasks, optimalAgent2Tasks):
+        for task in agent1Tasks:
+            if task not in optimalAgent1Tasks:
+                return False
+        for task in agent2Tasks:
+            if task not in optimalAgent2Tasks:
+                return False
+        return True
 
     def setUp(self, numTasks):
         self.fileName = "log.txt"
@@ -52,9 +69,6 @@ class TestAgent(unittest.TestCase):
         tasks = []  # formatted as [('Task X', skill1, skill2), ...]
         for i in range(self.numTasks):  # Generate random tasks
             task = f"Task {i+1}"
-            # slicePoint = random.randint(1, 9)
-            # skill1 = slicePoint
-            # skill2 = 10 - slicePoint
             skill1 = random.randint(1, 10)
             skill2 = random.randint(1, 10)
             tasks.append((task, skill1, skill2))
@@ -74,20 +88,20 @@ class TestAgent(unittest.TestCase):
         f.close()
         bta.logAssignedTasks(self.fileName, agent1, agent2)  # Log assigned tasks
 
-        # Check if tasks are assigned correctly via SUS
         f = open(self.fileName, "a")
-        SUS = self.calculateSUS(tasks, agent1Tasks, agent2Tasks)
-        f.write(f"\nAllocation Scoring:\n    SUS (Skill Utilization Score) = {SUS}%\n")
-        SUSThreshold = 50 # Trying to get above this threshold
-        if SUS < SUSThreshold:
+        optimalAllocation = self.getOptimalAllocation(tasks)
+        hasOptimalAllocation = self.hasOptimalAllocation(agent1Tasks, agent2Tasks, optimalAllocation[0], optimalAllocation[1])
+        if not hasOptimalAllocation:
             allocationErrorFound = True
-            f.write(f"\nBAD TASK ALLOCATION: SUS Score of {SUS}% is less than the minimum score of {SUSThreshold}%.\n")
-
+            f.write("\nBAD TASK ALLOCATION: The tasks are not optimally allocated.\n")
+            f.write("\nOptimal Allocation:\n")
+            f.write(f"Agent 1: {optimalAllocation[0]}\n")
+            f.write(f"Agent 2: {optimalAllocation[1]}\n")
         f.write(f"\nNumber of conversation iterations: {domain.numConversationIterations}")
         f.write(f"\nNumber of tokens generated by {agent1.name}: {agent1.numTokensGenerated}")
         f.write(f"\nNumber of tokens generated by {agent2.name}: {agent2.numTokensGenerated}\n")
         f.close()
-        return allocationErrorFound, SUS
+        return allocationErrorFound
     
 def format_seconds(seconds):
     # Ensure seconds is an integer
@@ -104,16 +118,16 @@ def format_seconds(seconds):
     return formatted_time
 
 def add_test_methods():
-    numRounds = 1
+    numRounds = 10
     numAllocationErrors = 0
-    totalSUSScore = 0
+    # totalSUSScore = 0
     ta = TestAgent()
     ta.setUp(numTasks = 6)
     totalTime = 0
     for i in range(numRounds):
         startTime = time.time()
-        allocationErrorFound, SUS = ta.run_round(i+1, numRounds)
-        totalSUSScore += SUS
+        allocationErrorFound = ta.run_round(i+1, numRounds)
+        # totalSUSScore += SUS
         endTime = time.time()
         duration = endTime - startTime
         totalTime += duration
@@ -124,8 +138,8 @@ def add_test_methods():
 
     with open(ta.fileName, "a") as f:
         f.write(("=" * 25) + f"  TOTAL  " + ("=" * 25) + "\n")
-        f.write(f"\nTotal Allocation errors: {numAllocationErrors} of {numRounds} rounds had an Assignment Error")
-        f.write(f"\nAverage SUS: {totalSUSScore / numRounds}%")
+        f.write(f"\nTotal Allocation errors: {numAllocationErrors} of {numRounds} rounds had an Allocation Error")
+        # f.write(f"\nAverage SUS: {totalSUSScore / numRounds}%")
         f.write(f"\nTotal Time: {format_seconds(totalTime)}")
         f.write(f"\nAverage Time per Round: {format_seconds(totalTime/numRounds)}\n")
         f.close()
