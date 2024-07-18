@@ -28,23 +28,9 @@ class Agent:
 		self.numTokensGenerated = 0
 		self.model = 'gemma2:latest'
 		self.memoryBuffer = []
-# 		self.systemInstructions = f"""
-# Your name is {self.name}. You will collaboratively and conversationally allocate tasks with a partner based on skill level.
-# Skill levels use a scale from 1 (least skill) to 10 (highest skill). You will report your skill level for each task. Initially, you won't know your partner's skill levels.
-
-# Rules:
-# - Compare skill levels to assign tasks optimally.
-# - One partner cannot end up with more tasks than the other. Ensure an even split.
-# - Collaboration or splitting any task is forbidden.
-# - Your assigned skill levels are permanently set, and you must not change them. When asked for your skill level for a task, you must provide the value given in the following section, "Tasks to Allocate".
-# - You must allocate all of the assigned tasks.
-# - Be critical of your partner's suggestions if they don't follow the rules.
-# - Ensure that you and your partner end up with tasks that you have a higher skill level for. If this is not possible with the even distribution constraint, try to maximize your optimization the best that you can.
-
-# Tasks to Allocate:"""
 		self.systemInstructions = f"""
 Your name is {self.name}. You will collaboratively and conversationally allocate tasks with a partner based on skill level.
-Skill levels use a scale from 1 (least skill) to 10 (highest skill). You will report your skill level for each task. Initially, you won't know your partner's skill levels.
+Skill levels use a scale from 0 (least skill) to 1 (highest skill). You will report your skill level for each task. Initially, you won't know your partner's skill levels.
 
 Rules:
 - Compare skill levels to assign tasks optimally.
@@ -54,13 +40,7 @@ Rules:
 - You must allocate all of the assigned tasks.
 - Be critical of your partner's suggestions if they don't follow the rules.
 - Ensure that you and your partner end up with tasks that you have a higher skill level for. If this is not possible with the even distribution constraint, try to maximize your optimization the best that you can.
-
-Strategy for Task Allocation:
-1. **Initial Exchange**: Begin by exchanging your skill levels for all tasks with your partner.
-2. **Identify Best Fits**: Individually identify which tasks you have a significantly higher skill level for compared to your partner.
-3. **Propose Allocations**: Propose a preliminary allocation of tasks where you take on the tasks you are best suited for and your partner does the same.
-4. **Negotiate**: If there is a conflict where both you and your partner want the same tasks, negotiate by comparing the difference in skill levels. Try to allocate tasks such that the overall skill optimization is maximized.
-5. **Finalize Allocation**: Ensure that both you and your partner end up with an even number of tasks. Make any necessary adjustments to balance the task distribution while minimizing the impact on skill optimization.
+- Remember that every task matters. If you misallocate even one task, the entire allocation will be considered incorrect.
 
 Tasks to Allocate:"""
 
@@ -126,7 +106,7 @@ Rules:
 Where 'AGENT NAME' is the name of the agent you think should be assigned that task.
 - Do not respond with anything other than what's shown above. Do not include bullet points or any other text in your response.
 - Remember: Collaboration is not an option. Only enter either '{self.agent1.name.lower()}' or '{self.agent2.name.lower()}' for each task.
-- There must be an even split of tasks. One partner cannot have more tasks assigned than the other.
+# - There must be an even split of tasks. One partner cannot have more tasks assigned than the other.
 """
 		rawConsensus1 = self.agent1.run("system", consensusString).strip().lower()
 		rawConsensus2 = self.agent2.run("system", consensusString).strip().lower()
@@ -168,8 +148,8 @@ Where 'AGENT NAME' is the name of the agent you think should be assigned that ta
 
 			self.agent1.memoryBuffer = self.agent1.memoryBuffer[:-2] # remove last 2 messages
 			self.agent2.memoryBuffer = self.agent2.memoryBuffer[:-2]
-			self.agent1.addToMemoryBuffer("system", f"You and your partner disagreed on the following task or tasks: {disagreedString}. Reevaluate your decisions conversationally. You must answer with either {self.agent1.name.lower()} or {self.agent2.name.lower()} for each task.")
-			self.agent2.addToMemoryBuffer("system", f"You and your partner disagreed on the following task or tasks: {disagreedString}. Reevaluate your decisions conversationally. You must answer with either {self.agent1.name.lower()} or {self.agent2.name.lower()} for each task.")
+			self.agent1.addToMemoryBuffer("system", f"You and your partner disagreed on the following task or tasks: {disagreedString}. Reevaluate your decisions conversationally. You must answer with either {self.agent1.name.lower()} or {self.agent2.name.lower()} for all {len(self.tasks)} tasks.")
+			self.agent2.addToMemoryBuffer("system", f"You and your partner disagreed on the following task or tasks: {disagreedString}. Reevaluate your decisions conversationally. You must answer with either {self.agent1.name.lower()} or {self.agent2.name.lower()} for all {len(self.tasks)} tasks.")
 
 			return False
 		else:

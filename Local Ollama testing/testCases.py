@@ -2,43 +2,38 @@ import unittest
 import random
 import batchTaskAllocator as bta
 import time
+import itertools
 
 class TestAgent(unittest.TestCase):
 
-    def getOptimalAllocation(self, tasks):
-        n = len(tasks) // 2
-        dp = [[-1 for _ in range(n+1)] for _ in range(len(tasks)+1)]
-        backtrack = [[None for _ in range(n+1)] for _ in range(len(tasks)+1)] #backtrack[i][j] helps to reconstruct the solution. It stores a tuple indicating the previous state and which agent took the task.
+    def getOptimalAllocation(self,tasks):
+        optimalSolution = []
+        bestSkillSum = 0
+        n = len(tasks)
+        half_n = n // 2
 
-        dp[0][0] = 0 #dp[i][j] keeps the maximum skill sum we can achieve for agent 1 considering the first i tasks and allocating j tasks to agent 1.
+        # Ensure there are an even number of tasks
+        if n % 2 != 0:
+            raise ValueError("The number of tasks must be even to form two equal groups.")
+        
+        # Generate all combinations of half_n tasks
+        all_combinations = itertools.combinations(tasks, half_n)
+                
+        for comb in all_combinations:
+            group1 = comb
+            group2 = tuple(task for task in tasks if task not in group1)
+            
+            # Calculate the sum of the first skill for group1 and the second skill for group2
+            sum1 = sum(task[1] for task in group1)
+            sum2 = sum(task[2] for task in group2)
+            skillSum = sum1 + sum2
 
+            if skillSum > bestSkillSum:
+                bestSkillSum = skillSum
+                optimalSolution = [group1, group2]
 
-        for i in range(1, len(tasks)+1): # Loop through each task and update the dp and backtrack tables.
-            for j in range(n+1):
-                if j > 0 and dp[i-1][j-1] != -1: #If adding the current task to agent 1 improves the skill sum, update the dp table accordingly.
-                    val = dp[i-1][j-1] + tasks[i-1][1]
-                    if val > dp[i][j]:
-                        dp[i][j] = val
-                        backtrack[i][j] = (i-1, j-1, True)
-                if dp[i-1][j] != -1: # Similarly, check if adding the current task to agent 2 improves the skill sum.
-                    val = dp[i-1][j] + tasks[i-1][2]
-                    if val > dp[i][j]:
-                        dp[i][j] = val
-                        backtrack[i][j] = (i-1, j, False)
+        return optimalSolution
 
-        agent1_tasks, agent2_tasks = [], []
-        i, j = len(tasks), n
-
-        while i > 0: # Start from the last task and backtrack to determine which tasks were allocated to each agent.
-            if backtrack[i][j][2]:
-                agent1_tasks.append(tasks[backtrack[i][j][0]])
-                i, j = backtrack[i][j][0], backtrack[i][j][1]
-            else:
-                agent2_tasks.append(tasks[backtrack[i][j][0]])
-                i = backtrack[i][j][0]
-
-        return agent1_tasks, agent2_tasks # After backtracking, we get the tasks allocated to each agent.
-                  
     def hasOptimalAllocation(self, agent1Tasks, agent2Tasks, optimalAgent1Tasks, optimalAgent2Tasks):
         for task in agent1Tasks:
             if task not in optimalAgent1Tasks:
@@ -69,10 +64,9 @@ class TestAgent(unittest.TestCase):
         tasks = []  # formatted as [('Task X', skill1, skill2), ...]
         for i in range(self.numTasks):  # Generate random tasks
             task = f"Task {i+1}"
-            skill1 = random.randint(1, 10)
-            skill2 = random.randint(1, 10)
+            skill1 = round(random.uniform(0, 1), 1) # Generate random skills between 0 and 1, rounded to 1 decimal place
+            skill2 = round(random.uniform(0, 1), 1)
             tasks.append((task, skill1, skill2))
-
 
         domain = bta.Domain(agent1, agent2, tasks)
         domain.assignTasks()
@@ -118,16 +112,14 @@ def format_seconds(seconds):
     return formatted_time
 
 def add_test_methods():
-    numRounds = 10
+    numRounds = 3
     numAllocationErrors = 0
-    # totalSUSScore = 0
     ta = TestAgent()
     ta.setUp(numTasks = 6)
     totalTime = 0
     for i in range(numRounds):
         startTime = time.time()
         allocationErrorFound = ta.run_round(i+1, numRounds)
-        # totalSUSScore += SUS
         endTime = time.time()
         duration = endTime - startTime
         totalTime += duration
@@ -139,7 +131,6 @@ def add_test_methods():
     with open(ta.fileName, "a") as f:
         f.write(("=" * 25) + f"  TOTAL  " + ("=" * 25) + "\n")
         f.write(f"\nTotal Allocation errors: {numAllocationErrors} of {numRounds} rounds had an Allocation Error")
-        # f.write(f"\nAverage SUS: {totalSUSScore / numRounds}%")
         f.write(f"\nTotal Time: {format_seconds(totalTime)}")
         f.write(f"\nAverage Time per Round: {format_seconds(totalTime/numRounds)}\n")
         f.close()
