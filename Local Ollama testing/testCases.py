@@ -8,7 +8,7 @@ class TestAgent(unittest.TestCase):
 
     def getOptimalAllocation(self,tasks):
         optimalSolution = []
-        bestSkillSum = 0
+        bestPSRSum = 0
         n = len(tasks)
         half_n = n // 2
 
@@ -23,13 +23,13 @@ class TestAgent(unittest.TestCase):
             group1 = comb
             group2 = tuple(task for task in tasks if task not in group1)
             
-            # Calculate the sum of the first skill for group1 and the second skill for group2
+            # Calculate the sum of the first PSR for group1 and the second PSR for group2
             sum1 = sum(task[1] for task in group1)
             sum2 = sum(task[2] for task in group2)
-            skillSum = sum1 + sum2
+            PSR_Sum = sum1 + sum2
 
-            if skillSum > bestSkillSum:
-                bestSkillSum = skillSum
+            if PSR_Sum > bestPSRSum:
+                bestPSRSum = PSR_Sum
                 optimalSolution = [group1, group2]
 
         return optimalSolution
@@ -58,19 +58,19 @@ class TestAgent(unittest.TestCase):
             f.close()
         print("\n" + ("~" * 25) + f"  ROUND {round_num} OF {numRounds}  " + ("~" * 25) + "\n")
 
-        # Generate random tasks and skills
+        # Generate random tasks and PSRs
         agent1 = bta.Agent("Agent 1")
         agent2 = bta.Agent("Agent 2")
-        tasks = []  # formatted as [('Task X', skill1, skill2), ...]
+        tasks = []  # formatted as [('Task X', PSR1, PSR2), ...]
         for i in range(self.numTasks):  # Generate random tasks
             task = f"Task {i+1}"
-            skill1 = round(random.uniform(0, 1), 1) # Generate random skills between 0 and 1, rounded to 1 decimal place
-            skill2 = round(random.uniform(0, 1), 1)
-            tasks.append((task, skill1, skill2))
+            PSR1 = round(random.uniform(0, 1), 1) # Generate random PSRs between 0 and 1, rounded to 1 decimal place
+            PSR2 = round(random.uniform(0, 1), 1)
+            tasks.append((task, PSR1, PSR2))
 
         domain = bta.Domain(agent1, agent2, tasks)
         domain.assignTasks()
-        agent1Tasks = domain.agent1.assignedTasks  # formatted as [('Task X', skill1, skill2), ...]
+        agent1Tasks = domain.agent1.assignedTasks  # formatted as [('Task X', PSR1, PSR2), ...]
         agent2Tasks = domain.agent2.assignedTasks
         domain.printTasks()
 

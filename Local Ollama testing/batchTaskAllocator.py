@@ -21,7 +21,7 @@ def logAssignedTasks(fileName, agent1, agent2):
 	f.close()
 
 class Agent:
-	def __init__(self, name) -> None: # tasks are (task, skill) tuples
+	def __init__(self, name) -> None:
 		self.name = name
 		self.temperature = 0.4
 		self.assignedTasks = []
@@ -29,20 +29,25 @@ class Agent:
 		self.model = 'gemma2:latest'
 		self.memoryBuffer = []
 		self.systemInstructions = f"""
-Your name is {self.name}. You will collaboratively and conversationally allocate tasks with a partner based on skill level.
-Skill levels use a scale from 0 (least skill) to 1 (highest skill). You will report your skill level for each task. Initially, you won't know your partner's skill levels.
+Your name is {self.name}. You will collaboratively and conversationally allocate tasks with a partner based your Probability of Success Rate (PSR) for each task.
+Your PSR is a value between 0.0 and 1.0, where 0.0 means you have no chance of success and 1.0 means you are guaranteed to succeed.
+While you will not actually be performing the tasks, you must allocate them to maximize your PSR for each task.
+Each task has two PSRs tied to it: Yours and your partner's. You will not know your partner's PSRs initially.
 
-Rules:
-- Compare skill levels to assign tasks optimally.
-- One partner cannot end up with more tasks than the other. Ensure an even split.
+Here are the Rules:
+- Compare PSRs to assign tasks optimally. Share all of your PSRs upfront.
+- One partner cannot end up with more tasks than the other. Ensure an even distribution.
 - Collaboration or splitting any task is forbidden.
-- Your assigned skill levels are permanently set, and you must not change them. When asked for your skill level for a task, you must provide the value given in the following section, "Tasks to Allocate".
 - You must allocate all of the assigned tasks.
 - Be critical of your partner's suggestions if they don't follow the rules.
-- Ensure that you and your partner end up with tasks that you have a higher skill level for. If this is not possible with the even distribution constraint, try to maximize your optimization the best that you can.
-- Remember that every task matters. If you misallocate even one task, the entire allocation will be considered incorrect.
+- Ensure that you receive tasks that you have a higher PSR for. If this is not possible with the even distribution constraint, try to maximize your total PSR the best that you can. Negotiate with your partner.
+- Your assigned PSRs are permanently set, and you must not change them. When asked for your PSR for a task, you must provide the value given in the following section, "Tasks to Allocate"
 
-Tasks to Allocate:"""
+Your ultimate goal is to maximize your Total PSR across all tasks, while ensuring you have the same numer of tasks as your partner. Your Total PSR is the sum of your PSRs for all tasks assigned to you (Not including your partner's PSRs in the sum). The same applies to your partner.
+Before you propose an allocation, really consider the possibilities of all task combinations to find the one that will maximize both of your Total PSRs.
+
+Tasks to Allocate:
+"""
 
 	def addToMemoryBuffer(self, role, inputText): #role is either 'user', 'assistant', or 'system'
 		self.memoryBuffer.append({'role':role, 'content': inputText})
@@ -77,7 +82,7 @@ Tasks to Allocate:"""
 		self.assignedTasks.append(task)
 
 	def numTasks(self):
-		return len(self.tasks)
+		return len(self.assignedTasks)
 	
 class Domain:
 	def __init__(self, agent1, agent2, tasks) -> None:
@@ -86,9 +91,9 @@ class Domain:
 		self.tasks = tasks
 		self.numConversationIterations = 0
 		for i, task in enumerate(self.tasks, start=1):
-			taskDescription, skill1, skill2 = task
-			agent1.systemInstructions +=  f"\n- {taskDescription}: {agent1.name}'s skill level for this task is {skill1} out of 10."
-			agent2.systemInstructions +=  f"\n- {taskDescription}: {agent2.name}'s skill level for this task is {skill2} out of 10."
+			taskDescription, PSR1, PSR2 = task
+			agent1.systemInstructions +=  f"\n- {taskDescription}: {agent1.name}'s PSR for this task is {PSR1} out of 10."
+			agent2.systemInstructions +=  f"\n- {taskDescription}: {agent2.name}'s PSR for this task is {PSR2} out of 10."
 		
 		agent1.systemInstructions += "\n\nLet's begin! Be concise."
 		agent2.systemInstructions += "\n\nLet's begin! Be concise."
@@ -218,7 +223,9 @@ Where 'AGENT NAME' is the name of the agent you think should be assigned that ta
 
 				# uncomment to allow user to talk to agents directly inbetween messages or see memory buffers live
 				# self.interruptConversation() 
-
+    
+			print(f"\nGetting consensus...")
+   
 			consensusReached = self.getConsensus()
 
 			if consensusReached and (len(self.agent1.assignedTasks) != len(self.agent2.assignedTasks)):
