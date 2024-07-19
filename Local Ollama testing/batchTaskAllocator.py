@@ -23,7 +23,7 @@ def logAssignedTasks(fileName, agent1, agent2):
 class Agent:
 	def __init__(self, name) -> None:
 		self.name = name
-		self.temperature = 0.4
+		self.temperature = 1.0
 		self.assignedTasks = []
 		self.numTokensGenerated = 0
 		self.model = 'gemma2:latest'
@@ -251,5 +251,5 @@ def main():
 	domain = Domain(agent1, agent2, tasks)
 	domain.assignTasks()
 
-	agent1.printMemoryBuffer(otherAgent = agent2)
-	agent2.printMemoryBuffer(otherAgent = agent1)
+	# agent1.printMemoryBuffer(otherAgent = agent2)
+	# agent2.printMemoryBuffer(otherAgent = agent1)
