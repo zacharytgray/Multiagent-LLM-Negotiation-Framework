@@ -1,3 +1,4 @@
+import ast
 import ollama
 from colorama import Fore
 
@@ -27,58 +28,14 @@ class Agent:
 		self.numTokensGenerated = 0
 		self.memoryBuffer = []
 		self.model = 'gemma2:latest'
-		self.temperature = 0.3
-		self.systemInstructions = f"""
-Your name is {self.name}. You will collaboratively and conversationally allocate tasks with a partner based your Probability of Success Rate (PSR) for each task.
-Your PSR is a value between 0.0 (you have no chance of success) and 1.0 (you are guarenteed to succeed).
-While you will not actually be performing the tasks, you must allocate them to maximize your PSR for each task.
-Each task has two PSRs associated with it: {self.name}'s (yours) and your partner's. You will not know your partner's PSRs initially.
+		self.temperature = 0.1
+		self.systemInstructions = f"Your name is {self.name}. "
 
-Your ultimate goal (as well as your partners) is to maximize the Sum Total PSR across all tasks, while ensuring you have the same numer of tasks as your partner. Your Total PSR is the sum of your PSRs for all tasks assigned to you (Not including your partner's PSRs in the sum). The same applies to your partner.
-Before you propose an allocation, consider the possibilities of all task allocations to find the one that will maximize the Sum Total PSR.
-
-Here's an example task distribution to show you how to calculate your Total PSR (Assuming you already know your partner's PSRs, which you will not know initially):
-
-Task 1: Your PSR = 0.6, Partner's PSR = 0.4
-Task 2: Your PSR = 0.2, Partner's PSR = 0.8
-Task 3: Your PSR = 0.7, Partner's PSR = 0.3
-Task 4: Your PSR = 0.5, Partner's PSR = 1.0
-
-Consider the allocation:
-You: Task 1, Task 2
-Partner: Task 3, Task 4
-
-Your Total PSR = 0.6 + 0.2 = 0.8
-Partner's Total PSR = 0.3 + 1.0 = 1.3
-Sum Total PSR = 0.8 + 1.3 = 2.1
-
-However, in this example, the allocation is not optimal. The optimal allocation would be:
-You: Task 1, Task 3
-Partner: Task 2, Task 4
-
-Your Total PSR = 0.6 + 0.7 = 1.3
-Partner's Total PSR = 0.8 + 1.0 = 1.8
-Sum Total PSR = 1.3 + 1.8 = 3.1
-
-Notice that the Sum Total PSR is higher in the optimal allocation. The higher the Sum Total PSR, the better the allocation.
-END OF EXAMPLE.
-
-Here are the Rules:
-- Compare PSRs to assign tasks such that the Sum Total PSR is maximized. 
-- Share all of your assigned PSRs upfront. You must wait for your partner to share their PSRs before you can begin the allocation process.
-- One partner cannot end up with more tasks than the other. Ensure an even distribution.
-- Collaboration or splitting any task is forbidden.
-- You must allocate all of the assigned tasks.
-- Only propose one possible allocation at a time. You do not want to overwhelm or confuse your partner with options.
-- Keep track of the allocation with the highest Sum Total PSR, and do not suggest an allocation that would result in a lower Sum Total PSR than the current highest.
-- Your assigned PSRs are permanently set, and you must not change them. When asked for your PSR for a task, you must provide the value given in the following section, "Tasks to Allocate"
-
-Remember to maximize the Sum Total PSR at all costs.
-
-Tasks to Allocate:
-"""
-
-			
+		try: # Load system instructions from file
+			f = open("systemInstructions10Exs.txt", "r")
+			self.systemInstructions += f.read()
+		except FileNotFoundError:
+			print(f"{Fore.RED}Error: systemInstructions.txt not found.{Fore.RESET}")
 
 	def addToMemoryBuffer(self, role, inputText): #role is either 'user', 'assistant', or 'system'
 		self.memoryBuffer.append({'role':role, 'content': inputText})
@@ -94,7 +51,7 @@ Tasks to Allocate:
 		self.addToMemoryBuffer('assistant', response)
 		if not response:
 			print(f"{Fore.RED}Error: No response from {self.name}.{Fore.RESET}")
-		return response
+		return response.strip()
 	
 	def printMemoryBuffer(self, otherAgent):
 		print(f"\n{Fore.YELLOW}{self.name}'s Memory Buffer:{Fore.RESET}")
@@ -125,8 +82,8 @@ class Domain:
 		self.numConversationIterations = 0
 		for task in self.tasks:
 			taskDescription, PSR1, PSR2 = task
-			agent1.systemInstructions +=  f"\n- {taskDescription}: {agent1.name}'s PSR for this task is {PSR1} out of 1.0."
-			agent2.systemInstructions +=  f"\n- {taskDescription}: {agent2.name}'s PSR for this task is {PSR2} out of 1.0."
+			agent1.systemInstructions +=  f"\n- {taskDescription}: Your PSR = {PSR1} out of 1.0."
+			agent2.systemInstructions +=  f"\n- {taskDescription}: Your PSR = {PSR2} out of 1.0."
 		
 		agent1.systemInstructions += "\n\nLet's begin! Remember to be concise."
 		agent2.systemInstructions += "\n\nLet's begin! Remember to be concise."
@@ -142,28 +99,40 @@ These two partners have been asked to allocate {len(self.tasks)} tasks between e
 Rules:
 - Both agents should be assigned the same number of tasks.
 - You are not going to do any critical thinking or changing their decisions in any way. 
-- Your job is to simply show me the results of their conversation in the format specified below.
-- Note that 'AGENT NAME' is a placeholder for the name of the agent you think should be assigned that task based on their conversation. It should be replaced with {self.agent1.name}, {self.agent2.name}, or TBD if they have not come to a consensus on that task.
+- Your job is to simply show me the results of their conversation in a python dictionary format, as specified below.
+- The allocation you should return is the one that yielded the highest Overall PSR from what they discussed.
+- Note that 'AGENT NAME' is a placeholder for the name of the agent you think should be assigned that task based on their conversation. It should be replaced with '{self.agent1.name}', '{self.agent2.name}', or 'TBD' if they have not come to a consensus on that task.
+- Include apostrophes as shown around the task names and agent names to ensure the dictionary is formatted correctly.
 - Do not respond with anything else. Not even an introduction. Simply return the following, replacing 'AGENT NAME' as needed:"""
+		self.moderatorAgent.systemInstructions += "\n{"
 		for task, _, _ in self.tasks:
-			self.moderatorAgent.systemInstructions += f"\n{task}:AGENT NAME"
+			self.moderatorAgent.systemInstructions += f"'{task}':'AGENT NAME'," 
+		self.moderatorAgent.systemInstructions = self.moderatorAgent.systemInstructions[:-1]
+		self.moderatorAgent.systemInstructions += "}"
    
-		memoryBuffer = self.agent1.memoryBuffer
-		for dict in memoryBuffer:
-			if dict.get('role') == 'user':
-				self.moderatorAgent.addToMemoryBuffer('user', f"{self.agent2.name}'s Response: " + dict.get('content'))
-			elif dict.get('role') == 'assistant':
-				self.moderatorAgent.addToMemoryBuffer('user', f"{self.agent1.name}'s Response: " + dict.get('content'))
+		memoryBuffer = self.agent1.memoryBuffer 
+		for dialogue in memoryBuffer:
+			if dialogue.get('role') == 'user':
+				self.moderatorAgent.addToMemoryBuffer('user', f"{self.agent2.name}'s Response: " + dialogue.get('content'))
+			elif dialogue.get('role') == 'assistant':
+				self.moderatorAgent.addToMemoryBuffer('user', f"{self.agent1.name}'s Response: " + dialogue.get('content'))
 
-		rawConsensus = self.moderatorAgent.run('system', self.moderatorAgent.systemInstructions)
-		consensusList = rawConsensus.split("\n") # gives ['task name:agent name', ...]
-		
+		rawConsensus = self.moderatorAgent.run('system', self.moderatorAgent.systemInstructions) # Shold be {'task name':'agent name', ...}
+		try:
+			consensusDict = ast.literal_eval(rawConsensus)
+			if not isinstance(consensusDict, dict):
+				print("Error: rawConsensus is not a dictionary.")
+				return False
+		except (ValueError, SyntaxError):
+			print("Error: rawConsensus is not a valid Python dictionary.")	
+			return False
+				
 		disagreedTasks = "" # str of tasks that the agents disagreed on
 
-		for i, result in enumerate(consensusList):
-			assignment = result.split(":") # gives ['task name', 'agent name']
-			assignedTask = assignment[0].lower().strip()
-			assignedAgent = assignment[1].lower().strip()
+		index = 0
+		for task, agent in consensusDict.items():
+			assignedTask = task.lower().strip()
+			assignedAgent = agent.lower().strip()
    
 			assignedTaskInTasks = False
 			for task, PSR1, PSR2 in self.tasks: # Check if task name is valid
@@ -174,11 +143,11 @@ Rules:
 				print(f"{Fore.RED}Error: Invalid task name in consensus: {assignedTask}{Fore.RESET}")
 				return False
 			
-			if i < len(self.tasks):
+			if index < len(self.tasks):
 				if assignedAgent == self.agent1.name.lower().strip():
-					self.agent1.addTask(self.tasks[i])
+					self.agent1.addTask(self.tasks[index])
 				elif assignedAgent == self.agent2.name.lower().strip():
-					self.agent2.addTask(self.tasks[i])
+					self.agent2.addTask(self.tasks[index])
 				elif assignedAgent == "tbd":
 					print(f"No consensus reached for {assignedTask}")
 					disagreedTasks += assignedTask + ", "
@@ -186,10 +155,11 @@ Rules:
 					print(f"{Fore.RED}Error: Invalid agent name in consensus: {assignedAgent} not equal to {self.agent1.name.lower().strip()} or {self.agent2.name.lower().strip()}{Fore.RESET}")
 					print(f"Raw Consensus: \n{rawConsensus}{Fore.RESET}")
 					return False
+			index += 1
 
 		if disagreedTasks != "":
-			self.agent1.addToMemoryBuffer('system', f"You did not come to complete agreement with {self.agent2.name} on task(s) {disagreedTasks[:-1]}. Please continue discussion to finalize the allocation.")
-			self.agent2.addToMemoryBuffer('system', f"You did not come to complete agreement with {self.agent1.name} on task(s) {disagreedTasks[:-1]}. Please continue discussion to finalize the allocation.")
+			self.agent1.addToMemoryBuffer('system', f"You did not come to complete agreement with {self.agent2.name} on task(s) {disagreedTasks[:-1]}. Please continue discussion to finalize the allocation. You must allocate all the tasks.")
+			self.agent2.addToMemoryBuffer('system', f"You did not come to complete agreement with {self.agent1.name} on task(s) {disagreedTasks[:-1]}. Please continue discussion to finalize the allocation. You must allocate all the tasks.")
 			return False
 
 		if len(self.agent1.assignedTasks) + len(self.agent2.assignedTasks) > len(self.tasks):
@@ -251,10 +221,10 @@ Rules:
 					print("Pass...")
 
 	def assignTasks(self, numIterations):
-		self.agent1.addToMemoryBuffer('system', self.agent1.systemInstructions)
-		self.agent2.addToMemoryBuffer('system', self.agent2.systemInstructions)
+		self.agent1.addToMemoryBuffer('user', self.agent1.systemInstructions)
+		self.agent2.addToMemoryBuffer('user', self.agent2.systemInstructions)
 		
-		currentInput = f"Hello! I'm {self.agent2.name}. Let's begin the task allocation."
+		currentInput = f"Hello! I'm {self.agent2.name}. Let's begin the task allocation. Please share your PSRs for each task."
 		self.agent2.addToMemoryBuffer('assistant', currentInput)
 	
 		currentAgent = self.agent1
@@ -265,9 +235,9 @@ Rules:
 			for i in range(numIterations):
 				response = currentAgent.run("user", currentInput)
 				if currentAgent == self.agent1:
-					print(f"{Fore.CYAN}\n{currentAgent.name}: \n	{response.strip()}{Fore.RESET}")
+					print(f"{Fore.CYAN}\n{currentAgent.name}: \n	{response}{Fore.RESET}")
 				elif currentAgent == self.agent2:
-					print(f"{Fore.GREEN}\n{currentAgent.name}: \n	{response.strip()}{Fore.RESET}")
+					print(f"{Fore.GREEN}\n{currentAgent.name}: \n	{response}{Fore.RESET}")
 
 				currentAgent = self.agent2 if currentAgent == self.agent1 else self.agent1
 				currentInput = response

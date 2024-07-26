@@ -1,4 +1,4 @@
-#!/Users/zacharytgray/Documents/GitHub/Ollama-LLM-Sandbox/.venv/bin/python3.10
+#!/Users/zacharytgray/Documents/GitHub/Ollama-LLM-Sandbox/.venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys

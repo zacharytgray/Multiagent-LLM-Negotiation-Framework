@@ -148,9 +148,9 @@ def add_test_methods(numRounds, numTasks, numIterations):
         f.close()
 
 def main():
-    numRounds = 30 # Number of rounds to be run
+    numRounds = 3 # Number of rounds to be run
     numTasks = 4 # Number of tasks to be assigned per round
-    numIterations = 4 # Number of conversation iterations per round
+    numIterations = 6 # Number of conversation iterations per round
     add_test_methods(numRounds, numTasks, numIterations)
 
 if __name__ == '__main__':
