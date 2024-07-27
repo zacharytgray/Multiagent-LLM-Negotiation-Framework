@@ -6,6 +6,14 @@ import batchTaskAllocator as bta
 import time
 import itertools
 
+
+def main():
+    numRounds = 3 # Number of rounds to be run
+    numTasks = 4 # Number of tasks to be assigned per round
+    numIterations = 6 # Number of conversation iterations per round
+    add_test_methods(numRounds, numTasks, numIterations)
+
+
 class TestAgent(unittest.TestCase):
 
     def getOptimalAllocation(self,tasks):
@@ -147,11 +155,4 @@ def add_test_methods(numRounds, numTasks, numIterations):
         f.write(f"\nAverage Time per Round: {format_seconds(totalTime/numRounds)}\n")
         f.close()
 
-def main():
-    numRounds = 3 # Number of rounds to be run
-    numTasks = 4 # Number of tasks to be assigned per round
-    numIterations = 6 # Number of conversation iterations per round
-    add_test_methods(numRounds, numTasks, numIterations)
-
-if __name__ == '__main__':
-    main()
+main()

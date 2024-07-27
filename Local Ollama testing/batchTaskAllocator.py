@@ -29,13 +29,19 @@ class Agent:
 		self.memoryBuffer = []
 		self.model = 'gemma2:latest'
 		self.temperature = 0.1
+		self.instructionsFilename = "systemInstructions10Exs.txt"
 		self.systemInstructions = f"Your name is {self.name}. "
 
-		try: # Load system instructions from file
-			f = open("systemInstructions10Exs.txt", "r")
-			self.systemInstructions += f.read()
+		try:
+			with open(self.instructionsFilename, "r") as f:
+				self.systemInstructions += f.read()
+			self.addToMemoryBuffer('system', self.systemInstructions)
 		except FileNotFoundError:
-			print(f"{Fore.RED}Error: systemInstructions.txt not found.{Fore.RESET}")
+			print(f"Error: {self.instructionsFilename} not found.")
+
+		# Debugging: Print system instructions and memory buffer
+		#print(f"System Instructions: {self.systemInstructions}")
+		#print(f"Memory Buffer: {self.memoryBuffer}")
 
 	def addToMemoryBuffer(self, role, inputText): #role is either 'user', 'assistant', or 'system'
 		self.memoryBuffer.append({'role':role, 'content': inputText})
@@ -221,8 +227,9 @@ Rules:
 					print("Pass...")
 
 	def assignTasks(self, numIterations):
-		self.agent1.addToMemoryBuffer('user', self.agent1.systemInstructions)
-		self.agent2.addToMemoryBuffer('user', self.agent2.systemInstructions)
+		self.agent1.addToMemoryBuffer('system', self.agent1.systemInstructions)
+		self.agent2.addToMemoryBuffer('system', self.agent2.systemInstructions)
+		#self.agent1.printMemoryBuffer(otherAgent = self.agent2)
 		
 		currentInput = f"Hello! I'm {self.agent2.name}. Let's begin the task allocation. Please share your PSRs for each task."
 		self.agent2.addToMemoryBuffer('assistant', currentInput)
@@ -252,6 +259,8 @@ Rules:
 			print(f"\nAsking Moderator for Consensus...")
    
 			consensusReached = self.getConsensus()
+		
+		
 
 def main():
 	numIterations = 6
