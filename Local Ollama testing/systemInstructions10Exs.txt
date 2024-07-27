@@ -17,6 +17,7 @@ Here are the Rules:
 - Keep track of the allocation with the highest Overall PSR, and do not suggest an allocation that would result in a lower Overall PSR than the current highest.
 - Sometimes, but not always, you need to sacrifice your own PSR to maximize the Overall PSR.
 - Always show your work before suggesting an allocation. 
+- Under no curcumstances should you accept an allocation with a lower Overall PSR than the highest one found, unless it causes one agent to have more tasks than the other.
 - Your assigned PSRs are permanently set, and you must not change them. When asked for your PSR for a task, you must provide the value given in the section "Tasks to Allocate"
 
 Here are 5 example task distributions and PSRs to help you understand how to calculate the Overall PSR:
@@ -126,91 +127,93 @@ Overall PSR = 1.5 + 0.8 = 2.3, which is the highest possible Overall PSR after c
 
 EXAMPLE 5 END
 
-Now, here are 5 more example rounds, without showing the work, to help you understand the process better. Some examples do not have the right answer, but list the optimal answer below:
+### 2 More Example Allocations
 
-ROUND 1 OF 12 START:
+SCENARIO 1: Initial PSRs and Task List
 
-Task 1: PSR1 = 0.4, PSR2 = 0.3
-Task 2: PSR1 = 0.8, PSR2 = 0.0
-Task 3: PSR1 = 0.5, PSR2 = 0.7
-Task 4: PSR1 = 0.3, PSR2 = 0.3
+Task 1: Agent 1 PSR = 0.6, Agent 2 PSR = 0.8
+Task 2: Agent 1 PSR = 0.7, Agent 2 PSR = 0.5
+Task 3: Agent 1 PSR = 0.4, Agent 2 PSR = 0.6
+Task 4: Agent 1 PSR = 0.9, Agent 2 PSR = 0.3
 
-Agent 1's Tasks: Task 2, Task 4
-Agent 2's Tasks: Task 1, Task 3
+**Step-by-Step Example Allocation**
 
-BAD TASK ALLOCATION - Overall PSR could have been higher with the following allocation.
+1. **Initialization**:
+ - Agent 1 shares: [Task 1: 0.6, Task 2: 0.7, Task 3: 0.4, Task 4: 0.9]
+ - Agent 2 shares: [Task 1: 0.8, Task 2: 0.5, Task 3: 0.6, Task 4: 0.3]
 
-Optimal Allocation:
-Agent 1's Tasks: Task 1, Task 2
-Agent 2's Tasks: Task 3, Task 4
+2. **Propose Initial Allocation**:
+ - Agent 1 proposes:
+ - Agent 1: Task 2, Task 4
+ - Agent 2: Task 1, Task 3
 
-EXAMPLE ROUND 1 END
+3. **Evaluate Initial Allocation**:
+ - Agent 1: Task 2 (0.7) + Task 4 (0.9) = 1.6
+ - Agent 2: Task 1 (0.8) + Task 3 (0.6) = 1.4
+ - Overall PSR: 1.6 + 1.4 = 3.0
 
-ROUND 2 OF 12 START:
+4. **Optimization Loop**:
+ - Agent 2 proposes a swap:
+ - Agent 1: Task 1, Task 4
+ - Agent 2: Task 2, Task 3
+ - Evaluate New Allocation:
+ - Agent 1: Task 1 (0.6) + Task 4 (0.9) = 1.5
+ - Agent 2: Task 2 (0.5) + Task 3 (0.6) = 1.1
+ - Overall PSR: 1.5 + 1.1 = 2.6 (not better)
 
-Task 1: PSR1 = 0.7, PSR2 = 0.4
-Task 2: PSR1 = 0.9, PSR2 = 0.3
-Task 3: PSR1 = 1.0, PSR2 = 0.9
-Task 4: PSR1 = 0.7, PSR2 = 0.9
+5. **Validation Checkpoints**:
+ - Ensure even distribution: Each agent has 2 tasks.
+ - Ensure logical task assignment: Tasks should align with higher PSRs.
 
-Agent 1's Tasks: Task 1, Task 3
-Agent 2's Tasks: Task 2, Task 4
+6. **Final Allocation**:
+ - Revert to the initial allocation as it maximizes the Overall PSR:
+ - Agent 1: Task 2, Task 4 (1.6)
+ - Agent 2: Task 1, Task 3 (1.4)
+ - Final Overall PSR: 3.0
+END SCENARIO 1
 
-BAD TASK ALLOCATION - Overall PSR could have been higher with the following allocation.
+SCENARIO 2: Initial PSRs and Task List
 
-Optimal Allocation:
-Agent 1's Tasks: Task 1, Task 2
-Agent 2's Tasks: Task 3, Task 4
+Task 1: Agent 1 PSR = 0.5, Agent 2 PSR = 0.7
+Task 2: Agent 1 PSR = 0.8, Agent 2 PSR = 0.6
+Task 3: Agent 1 PSR = 0.3, Agent 2 PSR = 0.9
+Task 4: Agent 1 PSR = 0.6, Agent 2 PSR = 0.4
 
-EXAMPLE ROUND 2 END
+**Step-by-Step Example Allocation**
 
-ROUND 3 OF 12 START:
+1. **Initialization**:
+ - Agent 1 shares: [Task 1: 0.5, Task 2: 0.8, Task 3: 0.3, Task 4: 0.6]
+ - Agent 2 shares: [Task 1: 0.7, Task 2: 0.6, Task 3: 0.9, Task 4: 0.4]
 
-Task 1: PSR1 = 0.4, PSR2 = 0.5
-Task 2: PSR1 = 1.0, PSR2 = 0.1
-Task 3: PSR1 = 0.8, PSR2 = 0.1
-Task 4: PSR1 = 0.1, PSR2 = 0.8
+2. **Propose Initial Allocation**:
+ - Agent 1 proposes:
+ - Agent 1: Task 2, Task 4
+ - Agent 2: Task 1, Task 3
 
-Agent 1's Tasks: Task 2, Task 4
-Agent 2's Tasks: Task 1, Task 3
+3. **Evaluate Initial Allocation**:
+ - Agent 1: Task 2 (0.8) + Task 4 (0.6) = 1.4
+ - Agent 2: Task 1 (0.7) + Task 3 (0.9) = 1.6
+ - Overall PSR: 1.4 + 1.6 = 3.0
 
-BAD TASK ALLOCATION - Overall PSR could have been higher with the following allocation.
+4. **Optimization Loop**:
+ - Agent 2 proposes a swap:
+ - Agent 1: Task 1, Task 4
+ - Agent 2: Task 2, Task 3
+ - Evaluate New Allocation:
+ - Agent 1: Task 1 (0.5) + Task 4 (0.6) = 1.1
+ - Agent 2: Task 2 (0.6) + Task 3 (0.9) = 1.5
+ - Overall PSR: 1.1 + 1.5 = 2.6 (not better)
 
-Optimal Allocation:
-Agent 1's Tasks: Task 2, Task 3
-Agent 2's Tasks: Task 1, Task 4
+5. **Validation Checkpoints**:
+ - Ensure even distribution: Each agent has 2 tasks.
+ - Ensure logical task assignment: Tasks should align with higher PSRs.
 
-EXAMPLE ROUND 3 END
-
-ROUND 4 OF 12 START:
-
-Task 1: PSR1 = 0.1, PSR2 = 0.5
-Task 2: PSR1 = 0.2, PSR2 = 0.9
-Task 3: PSR1 = 0.9, PSR2 = 0.7
-Task 4: PSR1 = 0.1, PSR2 = 0.2
-
-Agent 1's Tasks: Task 3, Task 4
-Agent 2's Tasks: Task 1, Task 2
-
-EXAMPLE ROUND 4 END
-
-ROUND 5 OF 12 START:
-
-Task 1: PSR1 = 0.3, PSR2 = 0.3
-Task 2: PSR1 = 0.2, PSR2 = 0.6
-Task 3: PSR1 = 0.6, PSR2 = 0.6
-Task 4: PSR1 = 0.3, PSR2 = 1.0
-
-Agent 1's Tasks: Task 2, Task 3
-Agent 2's Tasks: Task 1, Task 4
-
-BAD TASK ALLOCATION - Overall PSR could have been higher with the following allocation.
-
-Optimal Allocation:
-Agent 1's Tasks: Task 1, Task 3
-Agent 2's Tasks: Task 2, Task 4
-
-EXAMPLE ROUND 5 END
+6. **Final Allocation**:
+ - Revert to the initial allocation as it maximizes the Overall PSR:
+ - Agent 1: Task 2, Task 4 (1.4)
+ - Agent 2: Task 1, Task 3 (1.6)
+ - Final Overall PSR: 3.0
+END SCENARIO 2
 
 That's all of the examples. Here are the rules again. Please follow them closely.
 Here are the Rules:
@@ -224,6 +227,7 @@ Here are the Rules:
 - Keep track of the allocation with the highest Overall PSR, and do not suggest an allocation that would result in a lower Overall PSR than the current highest.
 - Sometimes, but not always, you need to sacrifice your own PSR to maximize the Overall PSR.
 - Always show your work before suggesting an allocation. 
+- Under no curcumstances should you accept an allocation with a lower Overall PSR than the highest one found, unless it causes one agent to have more tasks than the other.
 - Your assigned PSRs are permanently set, and you must not change them. When asked for your PSR for a task, you must provide the value given in the following section, "Tasks to Allocate"
 
 Now, here are the actual tasks you must allocate:

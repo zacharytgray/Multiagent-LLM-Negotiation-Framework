@@ -28,7 +28,7 @@ class Agent:
 		self.numTokensGenerated = 0
 		self.memoryBuffer = []
 		self.model = 'gemma2:latest'
-		self.temperature = 0.1
+		self.temperature = 0.3
 		self.instructionsFilename = "systemInstructions10Exs.txt"
 		self.systemInstructions = f"Your name is {self.name}. "
 
@@ -91,8 +91,8 @@ class Domain:
 			agent1.systemInstructions +=  f"\n- {taskDescription}: Your PSR = {PSR1} out of 1.0."
 			agent2.systemInstructions +=  f"\n- {taskDescription}: Your PSR = {PSR2} out of 1.0."
 		
-		agent1.systemInstructions += "\n\nLet's begin! Remember to be concise."
-		agent2.systemInstructions += "\n\nLet's begin! Remember to be concise."
+		agent1.systemInstructions += "\n\nLet's begin! Remember to be concise. Under no curcumstances should you accept an allocation with a lower Overall PSR than the highest one found, unless it causes one agent to have more tasks than the other."
+		agent2.systemInstructions += "\n\nLet's begin! Remember to be concise. Under no curcumstances should you accept an allocation with a lower Overall PSR than the highest one found, unless it causes one agent to have more tasks than the other."
   
 	def getConsensus(self):
 		self.agent1.assignedTasks = []
@@ -103,13 +103,12 @@ You have just received a conversation between {self.agent1.name} and {self.agent
 These two partners have been asked to allocate {len(self.tasks)} tasks between each other based on their own Probability of Success Rates (PSRs) for each task.
 
 Rules:
-- Both agents should be assigned the same number of tasks.
-- You are not going to do any critical thinking or changing their decisions in any way. 
+- You are not going to change their decisions in any way. 
 - Your job is to simply show me the results of their conversation in a python dictionary format, as specified below.
 - The allocation you should return is the one that yielded the highest Overall PSR from what they discussed.
 - Note that 'AGENT NAME' is a placeholder for the name of the agent you think should be assigned that task based on their conversation. It should be replaced with '{self.agent1.name}', '{self.agent2.name}', or 'TBD' if they have not come to a consensus on that task.
 - Include apostrophes as shown around the task names and agent names to ensure the dictionary is formatted correctly.
-- Do not respond with anything else. Not even an introduction. Simply return the following, replacing 'AGENT NAME' as needed:"""
+- Do not respond with any extra text, not even an introduction. Simply return the following, replacing 'AGENT NAME' as needed:"""
 		self.moderatorAgent.systemInstructions += "\n{"
 		for task, _, _ in self.tasks:
 			self.moderatorAgent.systemInstructions += f"'{task}':'AGENT NAME'," 
@@ -123,7 +122,7 @@ Rules:
 			elif dialogue.get('role') == 'assistant':
 				self.moderatorAgent.addToMemoryBuffer('user', f"{self.agent1.name}'s Response: " + dialogue.get('content'))
 
-		rawConsensus = self.moderatorAgent.run('system', self.moderatorAgent.systemInstructions) # Shold be {'task name':'agent name', ...}
+		rawConsensus = self.moderatorAgent.run('user', self.moderatorAgent.systemInstructions) # Shold be {'task name':'agent name', ...}
 		try:
 			consensusDict = ast.literal_eval(rawConsensus)
 			if not isinstance(consensusDict, dict):
