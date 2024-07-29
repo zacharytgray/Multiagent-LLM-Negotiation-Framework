@@ -29,7 +29,7 @@ class Agent:
 		self.memoryBuffer = []
 		self.model = 'gemma2'
 		self.temperature = 0.3
-		self.instructionsFilename = "systemInstructionsClaude.txt"
+		self.instructionsFilename = "systemInstructionsNoMath.txt"
 		self.systemInstructions = f"Your name is {self.name}. "
 
 		try:
@@ -65,9 +65,9 @@ class Agent:
 			if dict.get('role') == 'system':
 				print(Fore.RED + "System: " + dict.get('content') + Fore.RESET)
 			elif dict.get('role') == 'user':
-				print(Fore.BLUE + f"{otherAgent.name} (User): " + dict.get('content') + Fore.RESET)
+				print(Fore.LIGHTBLUE_EX + f"{otherAgent.name} (User): " + dict.get('content') + Fore.RESET)
 			elif dict.get('role') == 'assistant':
-				print(Fore.GREEN + f"{self.name} (Assistant): " + dict.get('content') + Fore.RESET)
+				print(Fore.LIGHTGREEN_EX + f"{self.name} (Assistant): " + dict.get('content') + Fore.RESET)
 			else:
 				print(f"{Fore.RED}Error: Invalid role in memory buffer: {dict.get('role')}")
 				print(f"Content: {dict.get('content')}{Fore.RESET}")
@@ -244,9 +244,9 @@ Rules:
 			for i in range(numIterations):
 				response = currentAgent.run("user", currentInput)
 				if currentAgent == self.agent1:
-					print(f"{Fore.CYAN}\n{currentAgent.name}: \n	{response}{Fore.RESET}")
+					print(f"{Fore.LIGHTBLUE_EX}\n{currentAgent.name}: \n	{response}{Fore.RESET}")
 				elif currentAgent == self.agent2:
-					print(f"{Fore.GREEN}\n{currentAgent.name}: \n	{response}{Fore.RESET}")
+					print(f"{Fore.LIGHTMAGENTA_EX}\n{currentAgent.name}: \n	{response}{Fore.RESET}")
 
 				currentAgent = self.agent2 if currentAgent == self.agent1 else self.agent1
 				currentInput = response

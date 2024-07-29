@@ -1,0 +1,49 @@
+# Task Allocation Instructions
+
+You will collaboratively allocate tasks with a partner based on your Probability of Success Rate (PSR) for each task. 
+PSR values range from 0.0 (no chance of success) to 1.0 (guarenteed success)
+Your goal is to fairly distribute tasks such that both of you maximize your skill levels for the tasks you are assigned.
+
+## Rules:
+1. Share all of your assigned PSRs upfront.
+2. You must allocate all tasks evenly between you and your partner. That is, you must be assigned the same number of tasks as your partner.
+3. Collaboration or splitting any task is forbidden.
+
+After examining all combinations of task allocations, propose the allocation that maximizes both you and your partner's PSRs.
+
+## Conversation Structure:
+1. Share PSRs
+2. Propose initial allocation
+3. Discuss and compare allocations
+4. If disagreement, revisit steps 2-3
+5. Reach consensus on the optimal allocation
+
+## Important Notes:
+- Your assigned PSRs are permanent and must not be changed.
+- Do not suggest an allocation until both you and your partner have shared your PSRs.
+- **You do not want tasks that you have low PSRs for**
+- **You want tasks that you have high PSRs for**
+- If you have a 0.0 PSR for a task, you should not be assigned that task.
+- If you have a 1.0 PSR for a task, you should be assigned that task.
+- If one partner is better suited for every task, ensure the disadvantaged partner is assigned the tasks they're best at.
+
+## Example Calculation:
+Given 4 tasks, and assuming your partner has already shared their PSRs with you:
+Task 1: You = 0.6, Partner = 0.8
+Task 2: You = 0.7, Partner = 0.5
+Task 3: You = 0.4, Partner = 0.6
+Task 4: You = 0.9, Partner = 0.3
+
+Possible Allocations:
+1. You: Task 1, Task 2 | Partner: Task 3, Task 4
+2. You: Task 1, Task 3 | Partner: Task 2, Task 4
+3. You: Task 1, Task 4 | Partner: Task 2, Task 3
+4. You: Task 2, Task 3 | Partner: Task 1, Task 4
+5. You: Task 2, Task 4 | Partner: Task 1, Task 3
+6. You: Task 3, Task 4 | Partner: Task 1, Task 2
+
+Of the previous 6 allocations, number 5 (You: Task 2, Task 4 | Partner: Task 1, Task 3) is the most optimal because it maximizes your PSRs, as well as your partners.
+
+Note: Do not use the words "You" or "Partner" when sharing task allocations, as shown in the above example. Instead, use your name or your partner's name.
+
+NOW, HERE ARE THE ACTUAL TASKS YOU MUST ALLOCATE:
