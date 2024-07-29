@@ -1,0 +1,113 @@
+# Task Allocation Instructions
+
+You will collaboratively allocate tasks with a partner based on your Probability of Success Rate (PSR) for each task. Your goal is to maximize the Overall PSR across all tasks while ensuring an even distribution between you and your partner.
+
+## Definitions:
+- PSR: A value between 0.0 (no chance of success) and 1.0 (guaranteed success)
+- Your Total PSR: The sum of your PSRs for tasks assigned to you
+- Partner's Total PSR: The sum of your partner's PSRs for tasks assigned to them
+- Overall PSR: Your Total PSR + Partner's Total PSR
+
+Let T_you be the set of tasks assigned to you, and T_partner be the set of tasks assigned to your partner.
+
+Equations (Note that T_You and T_Partner are all of length of the Total_Number_Of_Tasks / 2):
+1. Your Total PSR = ∑(Your PSR for task t), for all t in T_you
+2. Partner's Total PSR = ∑(Partner's PSR for task t), for all t in T_partner
+3. Overall PSR = Your Total PSR + Partner's Total PSR
+
+## Calculation Steps:
+1. For each possible allocation:
+   a. Identify T_you and T_partner
+   b. Calculate Your Total PSR using Equation 1
+   c. Calculate Partner's Total PSR using Equation 2
+   d. Calculate Overall PSR using Equation 3
+2. Compare Overall PSRs for all allocations
+3. Select the allocation with the highest Overall PSR
+
+## Example Calculation:
+Given 4 tasks:
+Task 1: You = 0.6, Partner = 0.8
+Task 2: You = 0.7, Partner = 0.5
+Task 3: You = 0.4, Partner = 0.6
+Task 4: You = 0.9, Partner = 0.3
+
+For allocation: You: Task 2, Task 4 | Partner: Task 1, Task 3
+
+T_you = {Task 2, Task 4}
+T_partner = {Task 1, Task 3}
+
+Your Total PSR = 0.7 + 0.9 = 1.6
+Partner's Total PSR = 0.8 + 0.6 = 1.4
+Overall PSR = 1.6 + 1.4 = 3.0
+
+## Rules:
+1. Share all of your assigned PSRs upfront.
+2. You must allocate all tasks evenly between you and your partner.
+3. Collaboration or splitting any task is forbidden.
+
+## Systematic Approach:
+1. List all tasks and your PSRs for each task.
+2. Generate all possible task allocation combinations, ensuring even distribution.
+3. For each combination:
+   a. Calculate Your Total PSR
+   b. Calculate Partner's Total PSR
+   c. Calculate Overall PSR
+4. Keep track of the allocation with the highest Overall PSR.
+5. After examining all combinations, propose the allocation with the highest Overall PSR.
+
+## Conversation Structure:
+1. Share PSRs
+2. Propose initial allocation based on systematic approach
+3. Discuss and compare allocations
+4. If disagreement, revisit steps 2-3
+5. Reach consensus on the optimal allocation
+
+## Important Notes:
+- Always show your calculations for each proposed allocation.
+- Do not accept an allocation with a lower Overall PSR than the highest one found.
+- Your assigned PSRs are permanent and must not be changed.
+- Don't try to calculate the Overall PSR until your partner has shared their PSRs
+
+## Example Calculation:
+Given 4 tasks, and assuming your partner has already shared their PSRs with you:
+Task 1: You = 0.6, Partner = 0.8
+Task 2: You = 0.7, Partner = 0.5
+Task 3: You = 0.4, Partner = 0.6
+Task 4: You = 0.9, Partner = 0.3
+
+Possible Allocations:
+1. You: Task 1, Task 2 | Partner: Task 3, Task 4
+   Your Total PSR: 0.6 + 0.7 = 1.3
+   Partner's Total PSR: 0.6 + 0.3 = 0.9
+   Overall PSR: 1.3 + 0.9 = 2.2
+
+2. You: Task 1, Task 3 | Partner: Task 2, Task 4
+   Your Total PSR: 0.6 + 0.4 = 1.0
+   Partner's Total PSR: 0.5 + 0.3 = 0.8
+   Overall PSR: 1.0 + 0.8 = 1.8
+
+3. You: Task 1, Task 4 | Partner: Task 2, Task 3
+   Your Total PSR: 0.6 + 0.9 = 1.5
+   Partner's Total PSR: 0.5 + 0.6 = 1.1
+   Overall PSR: 1.5 + 1.1 = 2.6
+
+4. You: Task 2, Task 3 | Partner: Task 1, Task 4
+   Your Total PSR: 0.7 + 0.4 = 1.1
+   Partner's Total PSR: 0.8 + 0.3 = 1.1
+   Overall PSR: 1.1 + 1.1 = 2.2
+
+5. You: Task 2, Task 4 | Partner: Task 1, Task 3
+   Your Total PSR: 0.7 + 0.9 = 1.6
+   Partner's Total PSR: 0.8 + 0.6 = 1.4
+   Overall PSR: 1.6 + 1.4 = 3.0
+
+6. You: Task 3, Task 4 | Partner: Task 1, Task 2
+   Your Total PSR: 0.4 + 0.9 = 1.3
+   Partner's Total PSR: 0.8 + 0.5 = 1.3
+   Overall PSR: 1.3 + 1.3 = 2.6
+
+Optimal Allocation: You: Task 2, Task 4 | Partner: Task 1, Task 3 (Overall PSR: 3.0)
+
+Begin the allocation process by sharing your PSRs and following this systematic approach.
+
+NOW, HERE ARE THE ACTUAL TASKS YOU MUST ALLOCATE:

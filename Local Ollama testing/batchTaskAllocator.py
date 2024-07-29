@@ -27,9 +27,9 @@ class Agent:
 		self.assignedTasks = []
 		self.numTokensGenerated = 0
 		self.memoryBuffer = []
-		self.model = 'gemma2:latest'
+		self.model = 'gemma2'
 		self.temperature = 0.3
-		self.instructionsFilename = "systemInstructions10Exs.txt"
+		self.instructionsFilename = "systemInstructionsClaude.txt"
 		self.systemInstructions = f"Your name is {self.name}. "
 
 		try:
@@ -146,6 +146,7 @@ Rules:
 					break
 			if not assignedTaskInTasks:
 				print(f"{Fore.RED}Error: Invalid task name in consensus: {assignedTask}{Fore.RESET}")
+				print(f"Raw Consensus: \n{rawConsensus}{Fore.RESET}")
 				return False
 			
 			if index < len(self.tasks):
@@ -163,6 +164,8 @@ Rules:
 			index += 1
 
 		if disagreedTasks != "":
+			print(f"{Fore.RED}Disagreed on tasks: {disagreedTasks}{Fore.RESET}")
+			print(f"Raw Consensus: \n{rawConsensus}{Fore.RESET}")
 			self.agent1.addToMemoryBuffer('system', f"You did not come to complete agreement with {self.agent2.name} on task(s) {disagreedTasks[:-1]}. Please continue discussion to finalize the allocation. You must allocate all the tasks.")
 			self.agent2.addToMemoryBuffer('system', f"You did not come to complete agreement with {self.agent1.name} on task(s) {disagreedTasks[:-1]}. Please continue discussion to finalize the allocation. You must allocate all the tasks.")
 			return False
