@@ -26,6 +26,7 @@ After examining all combinations of task allocations, propose the allocation tha
 - If you have a 0.0 PSR for a task, you should not be assigned that task.
 - If you have a 1.0 PSR for a task, you should be assigned that task.
 - If one partner is better suited for every task, ensure the disadvantaged partner is assigned the tasks they're best at.
+- Be critical of your partner if they do not follow the rules. Negotiate to reallocate the tasks if their allocation does not seem fair. 
 
 ## Example Calculation:
 Given 4 tasks, and assuming your partner has already shared their PSRs with you:

@@ -6,11 +6,16 @@ import time
 import itertools
 
 def main():
-    numRounds = 3 # Number of rounds to be run
+    numRounds = 100 # Number of rounds to be run
     numTasks = 4 # Number of tasks to be assigned per round
     numIterations = 6 # Number of conversation iterations per round
+    f = open("log.txt", "w")
+    f.write("TASK ALLOCATION LOG\n\n")
+    f.write(f"Number of Tasks to Allocate: {numTasks}\n")
+    f.write(f"Number of Rounds: {numRounds}\n")
+    f.write(f"Default Number of Conversation Iterations Per Round: {numIterations}\n")
+    f.close()
     add_test_methods(numRounds, numTasks, numIterations)
-
 
 class TestAgent(unittest.TestCase):
 
@@ -58,9 +63,6 @@ class TestAgent(unittest.TestCase):
     def setUp(self, numTasks):
         self.fileName = "log.txt"
         self.numTasks = numTasks  # number of tasks to be assigned
-        with open(self.fileName, "w") as f:
-            f.write("")  # clear file
-            f.close()
 
     def run_round(self, round_num, numRounds, numIterations):
         allocationErrorFound = False
@@ -100,17 +102,17 @@ class TestAgent(unittest.TestCase):
         allocationScore = self.getAllocationScore(agent1Tasks, agent2Tasks, bestPSR)
         if allocationScore < 15:
             f.write(f"\nAllocation Score (PASSING): {allocationScore}% away from the optimal.\n")
-            print(f"\n{Fore.GREEN}Allocation Score (PASSING): {allocationScore}% away from the optimal.{Fore.RESET}\n")
+            print(f"\n{Fore.GREEN}Allocation Score (PASSING): {allocationScore}% away from the optimal.{Fore.RESET}")
         else:
             f.write(f"\nAllocation Score (FAILING): {allocationScore}% away from the optimal.\n")
-            print(f"\n{Fore.RED}Allocation Score (FAILING): {allocationScore}% away from the optimal.{Fore.RESET}\n")
+            print(f"\n{Fore.RED}Allocation Score (FAILING): {allocationScore}% away from the optimal.{Fore.RESET}")
             allocationErrorFound = True
         hasOptimalAllocation = self.hasOptimalAllocation(agent1Tasks, agent2Tasks, bestPSR)
         if not hasOptimalAllocation:
             
             f.write("Optimal Allocation:\n")
             f.write(f"  Agent 1: {optimalAllocation1}\n")
-            f.write(f"  Agent 2: {optimalAllocation2}")
+            f.write(f"  Agent 2: {optimalAllocation2}\n")
             
             print("\nOptimal Allocation:\n")
             print(f"    Agent 1: {optimalAllocation1}")
@@ -138,12 +140,18 @@ def format_seconds(seconds):
     return formatted_time
 
 def add_test_methods(numRounds, numTasks, numIterations):
-    numSubOptimal = 0
-    numFailing = 0
+    numOptimal = 0
+    numPassing = 0
     totalAllocationScore = 0
     ta = TestAgent()
     ta.setUp(numTasks)
     totalTime = 0
+
+    f = open(ta.fileName, "a")
+    agent = bta.Agent("Dummy Agent")
+    f.write(f"LLM Being Used to Allocate Tasks: {agent.model}\n")
+    f.close()
+
     for i in range(numRounds):
         startTime = time.time()
         hasOptimalAllocation, allocationErrorFound, allocationScore = ta.run_round(i+1, numRounds, numIterations)
@@ -151,16 +159,16 @@ def add_test_methods(numRounds, numTasks, numIterations):
         endTime = time.time()
         duration = endTime - startTime
         totalTime += duration
-        numSubOptimal += 1 if hasOptimalAllocation else 0
-        numFailing += 1 if allocationErrorFound else 0
+        numOptimal += 1 if hasOptimalAllocation else 0
+        numPassing += 1 if not allocationErrorFound else 0
         with open (ta.fileName, "a") as f:
             f.write(f"Round {i+1} Duration: Completed in {format_seconds(duration)}\n\n")
             f.close()
 
     with open(ta.fileName, "a") as f:
         f.write(("=" * 25) + f"  TOTAL  " + ("=" * 25) + "\n")
-        f.write(f"\nTotal Suboptimal Allocations: {numSubOptimal} of {numRounds} rounds were suboptimal.")
-        f.write(f"\nTotal Failing Allocations: {numFailing} of {numRounds} rounds did not meet the allocation requirements.")
+        f.write(f"\nTotal Optimal Allocations: {numOptimal} of {numRounds} rounds were optimal.")
+        f.write(f"\nTotal Passing Allocations: {numPassing} of {numRounds} rounds were within the allocation test tolerance.")
         f.write(f"\nAverage Allocation Score: {round(totalAllocationScore/numRounds)}% away from the optimal.")
         f.write(f"\nTotal Time: {format_seconds(totalTime)}")
         f.write(f"\nAverage Time per Round: {format_seconds(totalTime/numRounds)}\n")
