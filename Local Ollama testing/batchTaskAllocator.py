@@ -27,7 +27,7 @@ class Agent:
 		self.assignedTasks = []
 		self.numTokensGenerated = 0
 		self.memoryBuffer = []
-		self.model = 'gemma2:latest'
+		self.model = 'llama3.1:8b'
 		self.temperature = 0.3
 		self.instructionsFilename = "systemInstructionsNoMath.txt"
 		self.systemInstructions = f"Your name is {self.name}. "

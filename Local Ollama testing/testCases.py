@@ -9,13 +9,15 @@ def main():
     numRounds = 100 # Number of rounds to be run
     numTasks = 4 # Number of tasks to be assigned per round
     numIterations = 6 # Number of conversation iterations per round
+    allocationScoreCeiling = 15 # The maximum percentage away from the optimal allocation that is considered passing
     f = open("log.txt", "w")
     f.write("TASK ALLOCATION LOG\n\n")
     f.write(f"Number of Tasks to Allocate: {numTasks}\n")
     f.write(f"Number of Rounds: {numRounds}\n")
     f.write(f"Default Number of Conversation Iterations Per Round: {numIterations}\n")
+    f.write(f"Allocation Score Ceiling: Allocatios must be less than {allocationScoreCeiling}% away from the optimal solution\n")
     f.close()
-    add_test_methods(numRounds, numTasks, numIterations)
+    add_test_methods(numRounds, numTasks, numIterations, allocationScoreCeiling)
 
 class TestAgent(unittest.TestCase):
 
@@ -64,7 +66,7 @@ class TestAgent(unittest.TestCase):
         self.fileName = "log.txt"
         self.numTasks = numTasks  # number of tasks to be assigned
 
-    def run_round(self, round_num, numRounds, numIterations):
+    def run_round(self, round_num, numRounds, numIterations, allocationScoreCeiling):
         allocationErrorFound = False
 
         with open(self.fileName, "a") as f:
@@ -100,7 +102,7 @@ class TestAgent(unittest.TestCase):
         f = open(self.fileName, "a")
         optimalAllocation1, optimalAllocation2, bestPSR = self.getOptimalAllocation(tasks)
         allocationScore = self.getAllocationScore(agent1Tasks, agent2Tasks, bestPSR)
-        if allocationScore < 15:
+        if allocationScore < allocationScoreCeiling:
             f.write(f"\nAllocation Score (PASSING): {allocationScore}% away from the optimal.\n")
             print(f"\n{Fore.GREEN}Allocation Score (PASSING): {allocationScore}% away from the optimal.{Fore.RESET}")
         else:
