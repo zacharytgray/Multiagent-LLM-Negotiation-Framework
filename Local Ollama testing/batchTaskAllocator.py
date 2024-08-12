@@ -55,7 +55,8 @@ class Agent:
 		with concurrent.futures.ThreadPoolExecutor() as executor:
 			future = executor.submit(model_query)
 			try:
-				return future.result(timeout=300) # 300 seconds, or 5 minutes
+				numMinsTimeout = 8
+				return future.result(numMinsTimeout * 60) 
 			except concurrent.futures.TimeoutError:
 				print(f"{Fore.RED}Error: Timeout in model query.{Fore.RESET}")
 				return "TIMEOUTERROR"
@@ -107,6 +108,7 @@ class Domain:
 		agent2.systemInstructions += "\n\nLet's begin! Remember to be concise. Under no curcumstances should you accept an allocation with a lower Overall PSR than the highest one found, unless it causes one agent to have more tasks than the other."
   
 	def getConsensus(self):
+		validDict = False
 		self.agent1.assignedTasks = []
 		self.agent2.assignedTasks = []
 		self.moderatorAgent.memoryBuffer = []
@@ -121,28 +123,32 @@ Rules:
 - Note that 'AGENT NAME' is a placeholder for the name of the agent you think should be assigned that task based on their conversation. It should be replaced with '{self.agent1.name}', '{self.agent2.name}', or 'TBD' if they have not come to a consensus on that task.
 - Include apostrophes as shown around the task names and agent names to ensure the dictionary is formatted correctly.
 - Do not respond with any extra text, not even an introduction. Simply return the following, replacing 'AGENT NAME' as needed:"""
-		self.moderatorAgent.systemInstructions += "\n{"
-		for task, _, _ in self.tasks:
-			self.moderatorAgent.systemInstructions += f"'{task}':'AGENT NAME'," 
-		self.moderatorAgent.systemInstructions = self.moderatorAgent.systemInstructions[:-1]
-		self.moderatorAgent.systemInstructions += "}"
-   
-		memoryBuffer = self.agent1.memoryBuffer 
-		for dialogue in memoryBuffer:
-			if dialogue.get('role') == 'user':
-				self.moderatorAgent.addToMemoryBuffer('user', f"{self.agent2.name}'s Response: " + dialogue.get('content'))
-			elif dialogue.get('role') == 'assistant':
-				self.moderatorAgent.addToMemoryBuffer('user', f"{self.agent1.name}'s Response: " + dialogue.get('content'))
+		
+		while not validDict:
+			self.moderatorAgent.systemInstructions += "\n{"
+			for task, _, _ in self.tasks:
+				self.moderatorAgent.systemInstructions += f"'{task}':'AGENT NAME'," 
+			self.moderatorAgent.systemInstructions = self.moderatorAgent.systemInstructions[:-1]
+			self.moderatorAgent.systemInstructions += "}"
+	
+			memoryBuffer = self.agent1.memoryBuffer 
+			for dialogue in memoryBuffer:
+				if dialogue.get('role') == 'user':
+					self.moderatorAgent.addToMemoryBuffer('user', f"{self.agent2.name}'s Response: " + dialogue.get('content'))
+				elif dialogue.get('role') == 'assistant':
+					self.moderatorAgent.addToMemoryBuffer('user', f"{self.agent1.name}'s Response: " + dialogue.get('content'))
 
-		rawConsensus = self.moderatorAgent.run('user', self.moderatorAgent.systemInstructions) # Should be {'task name':'agent name', ...}
-		try:
-			consensusDict = ast.literal_eval(rawConsensus)
-			if not isinstance(consensusDict, dict):
-				print("Error: rawConsensus is not a dictionary.")
-				return False
-		except (ValueError, SyntaxError):
-			print("Error: rawConsensus is not a valid Python dictionary.")	
-			return False
+			rawConsensus = self.moderatorAgent.run('user', self.moderatorAgent.systemInstructions) # Should be {'task name':'agent name', ...}
+			try:
+				consensusDict = ast.literal_eval(rawConsensus)
+				if isinstance(consensusDict, dict):
+					print("Error: rawConsensus is not a dictionary.")
+					validDict = True
+					message = "You did not provide a valid python dictionary response. Try again, and this time provide a valid dictionary. A python dictionary looks like this: {'key1':'value1', 'key2':'value2', ...}"
+					if not self.moderatorAgent.systemInstructions.startswith(message):
+						self.moderatorAgent.systemInstructions = message + self.moderatorAgent.systemInstructions			
+			except (ValueError, SyntaxError):
+				print("Error: rawConsensus is not a valid Python dictionary.")	
 				
 		disagreedTasks = "" # str of tasks that the agents disagreed on
 
