@@ -4,20 +4,25 @@ from colorama import Fore
 import batchTaskAllocator as bta
 import time
 import itertools
+from datetime import datetime
 
 def main():
     numRounds = 100 # Number of rounds to be run
     numTasks = 4 # Number of tasks to be assigned per round
-    numIterations = 6 # Number of conversation iterations per round
+    numIterations = 4 # Number of conversation iterations per round
     allocationScoreCeiling = 15 # The maximum percentage away from the optimal allocation that is considered passing
-    f = open("log.txt", "w")
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    logFilename = f"log_{timestamp}.txt"
+
+    f = open(logFilename, "w")
     f.write("TASK ALLOCATION LOG\n\n")
     f.write(f"Number of Tasks to Allocate: {numTasks}\n")
     f.write(f"Number of Rounds: {numRounds}\n")
     f.write(f"Default Number of Conversation Iterations Per Round: {numIterations}\n")
-    f.write(f"Allocation Score Ceiling: Allocatios must be less than {allocationScoreCeiling}% away from the optimal solution\n")
+    f.write(f"Allocation Score Ceiling: Allocations must be less than {allocationScoreCeiling}% away from the optimal solution\n")
     f.close()
-    add_test_methods(numRounds, numTasks, numIterations, allocationScoreCeiling)
+    add_test_methods(numRounds, numTasks, numIterations, allocationScoreCeiling, logFilename)
 
 class TestAgent(unittest.TestCase):
 
@@ -63,13 +68,12 @@ class TestAgent(unittest.TestCase):
         return round(100 * ((bestPSR - currPSR) / bestPSR))
 
     def setUp(self, numTasks):
-        self.fileName = "log.txt"
         self.numTasks = numTasks  # number of tasks to be assigned
 
-    def run_round(self, round_num, numRounds, numIterations, allocationScoreCeiling):
+    def run_round(self, round_num, numRounds, numIterations, allocationScoreCeiling, logFilename):
         allocationErrorFound = False
 
-        with open(self.fileName, "a") as f:
+        with open(logFilename, "a") as f:
             f.write(("~" * 25) + f"  ROUND {round_num} OF {numRounds}  " + ("~" * 25) + "\n")
             f.close()
         print("\n" + ("~" * 25) + f"  ROUND {round_num} OF {numRounds}  " + ("~" * 25) + "\n")
@@ -92,14 +96,14 @@ class TestAgent(unittest.TestCase):
         domain.printTasks()
 
         # bta.logMemoryBuffer(self.fileName, agent1, agent2)  # Log memory buffers
-        f = open(self.fileName, "a")
+        f = open(logFilename, "a")
         f.write("\nTasks for this round:\n")
         for task in tasks:
             f.write(f"- {task}\n")
         f.close()
-        bta.logAssignedTasks(self.fileName, agent1, agent2)  # Log assigned tasks
+        bta.logAssignedTasks(logFilename, agent1, agent2)  # Log assigned tasks
 
-        f = open(self.fileName, "a")
+        f = open(logFilename, "a")
         optimalAllocation1, optimalAllocation2, bestPSR = self.getOptimalAllocation(tasks)
         allocationScore = self.getAllocationScore(agent1Tasks, agent2Tasks, bestPSR)
         if allocationScore < allocationScoreCeiling:
@@ -141,7 +145,7 @@ def format_seconds(seconds):
     
     return formatted_time
 
-def add_test_methods(numRounds, numTasks, numIterations):
+def add_test_methods(numRounds, numTasks, numIterations, allocationScoreCeiling, logFilename):
     numOptimal = 0
     numPassing = 0
     totalAllocationScore = 0
@@ -149,25 +153,25 @@ def add_test_methods(numRounds, numTasks, numIterations):
     ta.setUp(numTasks)
     totalTime = 0
 
-    f = open(ta.fileName, "a")
+    f = open(logFilename, "a")
     agent = bta.Agent("Dummy Agent")
     f.write(f"LLM Being Used to Allocate Tasks: {agent.model}\n")
     f.close()
 
     for i in range(numRounds):
         startTime = time.time()
-        hasOptimalAllocation, allocationErrorFound, allocationScore = ta.run_round(i+1, numRounds, numIterations)
+        hasOptimalAllocation, allocationErrorFound, allocationScore = ta.run_round(i+1, numRounds, numIterations, allocationScoreCeiling, logFilename)
         totalAllocationScore += allocationScore
         endTime = time.time()
         duration = endTime - startTime
         totalTime += duration
         numOptimal += 1 if hasOptimalAllocation else 0
         numPassing += 1 if not allocationErrorFound else 0
-        with open (ta.fileName, "a") as f:
+        with open (logFilename, "a") as f:
             f.write(f"Round {i+1} Duration: Completed in {format_seconds(duration)}\n\n")
             f.close()
 
-    with open(ta.fileName, "a") as f:
+    with open(logFilename, "a") as f:
         f.write(("=" * 25) + f"  TOTAL  " + ("=" * 25) + "\n")
         f.write(f"\nTotal Optimal Allocations: {numOptimal} of {numRounds} rounds were optimal.")
         f.write(f"\nTotal Passing Allocations: {numPassing} of {numRounds} rounds were within the allocation test tolerance.")
