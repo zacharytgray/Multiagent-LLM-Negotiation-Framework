@@ -28,7 +28,7 @@ class Agent:
 		self.assignedTasks = []
 		self.numTokensGenerated = 0
 		self.memoryBuffer = []
-		self.model = 'llama3.1:8b'
+		self.model = 'gemma2:2b'
 		self.temperature = 0.3
 		self.instructionsFilename = "systemInstructions.txt"
 		self.systemInstructions = f"Your name is {self.name}. "
@@ -125,18 +125,24 @@ class Domain:
 		self.agent1.assignedTasks = []
 		self.agent2.assignedTasks = []
 		self.moderatorAgent.memoryBuffer = []
-		self.moderatorAgent.systemInstructions = f"""
-You have just received a conversation between {self.agent1.name} and {self.agent2.name}. You are the moderator for this task allocation conversation.
-These two partners have been asked to allocate {len(self.tasks)} tasks between each other based on their own Probability of Success Rates (PSRs) for each task.
-
+		rulesStr = """
 Rules:
 - You are not going to change their decisions in any way. 
-- Your job is to simply show me the results of their conversation in a python dictionary format, as specified below.
+- Your job is to simply show me the results of their conversation in a dictionary format: {'Task 1':'AGENT NAME', 'Task 2':'AGENT NAME', ...}
 - The allocation you should return is the one that yielded the highest Overall PSR from what they discussed.
 - Note that 'AGENT NAME' is a placeholder for the name of the agent you think should be assigned that task based on their conversation. It should be replaced with '{self.agent1.name}', '{self.agent2.name}', or 'TBD' if they have not come to a consensus on that task.
 - Include apostrophes as shown around the task names and agent names to ensure the dictionary is formatted correctly.
-- Do not respond with any extra text, not even an introduction. Simply return the following, replacing 'AGENT NAME' as needed:"""
-		self.moderatorAgent.systemInstructions += "\n{"
+- To ensure your message is a valid dictionary, make sure your response starts with an open curly bracket and ends with a curly bracket. 
+- Do not inculde leading or trailing apostrophes. 
+- Do not inclue any headers like 'python' or 'json'.
+- Do not respond with any extra text, not even an introduction. Simply return the following, replacing 'AGENT NAME' as needed:
+
+		"""
+		self.moderatorAgent.systemInstructions = f"""
+You have just received a conversation between {self.agent1.name} and {self.agent2.name}. You are the moderator for this task allocation conversation.
+These two partners have been asked to allocate {len(self.tasks)} tasks between each other based on their own Probability of Success Rates (PSRs) for each task.""" + rulesStr
+
+		self.moderatorAgent.systemInstructions += "{"
 		for task, _, _ in self.tasks:
 			self.moderatorAgent.systemInstructions += f"'{task}':'AGENT NAME'," 
 		self.moderatorAgent.systemInstructions = self.moderatorAgent.systemInstructions[:-1]
@@ -149,15 +155,22 @@ Rules:
 			elif dialogue.get('role') == 'assistant':
 				self.moderatorAgent.addToMemoryBuffer('user', f"{self.agent1.name}'s Response: " + dialogue.get('content'))
 
-		rawConsensus = self.moderatorAgent.run('user', self.moderatorAgent.systemInstructions) # Should be {'task name':'agent name', ...}
-		try:
-			consensusDict = ast.literal_eval(rawConsensus)
-			if not isinstance(consensusDict, dict):
-				print("Error: rawConsensus is not a dictionary.")
-				return False
-		except (ValueError, SyntaxError):
-			print("Error: rawConsensus is not a valid Python dictionary.")	
-			return False
+		isDict = False
+		notDictErrorStr = "You did not return a valid dictionary. Please follow the format precisely, with no additional text. A dictionary is formatted as {'key1':'value1', 'key2':'value2', ...}."
+		while not isDict:
+			rawConsensus = self.moderatorAgent.run('system', self.moderatorAgent.systemInstructions) # Should be {'task name':'agent name', ...}
+			try:
+				consensusDict = ast.literal_eval(rawConsensus)
+				if not isinstance(consensusDict, dict):
+					print("Error: rawConsensus is not a dictionary.")
+				else:
+					isDict = True
+			except (ValueError, SyntaxError):
+				print("Error: rawConsensus is not a valid Python dictionary.")	
+			if not isDict:
+				print("Raw consensus:\n	" + rawConsensus)
+				self.moderatorAgent.addToMemoryBuffer('user', notDictErrorStr)
+
 				
 		disagreedTasks = "" # str of tasks that the agents disagreed on
 
