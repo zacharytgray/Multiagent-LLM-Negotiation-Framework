@@ -28,7 +28,7 @@ class Agent:
 		self.assignedTasks = []
 		self.numTokensGenerated = 0
 		self.memoryBuffer = []
-		self.model = 'gemma2:2b'
+		self.model = 'llama3.1:8b'
 		self.temperature = 0.3
 		self.instructionsFilename = "systemInstructions.txt"
 		self.systemInstructions = f"Your name is {self.name}. "
@@ -125,10 +125,12 @@ class Domain:
 		self.agent1.assignedTasks = []
 		self.agent2.assignedTasks = []
 		self.moderatorAgent.memoryBuffer = []
-		rulesStr = """
+		self.moderatorAgent.systemInstructions = f"""
+You have just received a conversation between {self.agent1.name} and {self.agent2.name}. You are the moderator for this task allocation conversation.
+These two partners have been asked to allocate {len(self.tasks)} tasks between each other based on their own Probability of Success Rates (PSRs) for each task.
 Rules:
 - You are not going to change their decisions in any way. 
-- Your job is to simply show me the results of their conversation in a dictionary format: {'Task 1':'AGENT NAME', 'Task 2':'AGENT NAME', ...}
+- Your job is to simply show me the results of their conversation in a dictionary format: {{'Task A':'AGENT NAME', 'Task B':'AGENT NAME', ...}}
 - The allocation you should return is the one that yielded the highest Overall PSR from what they discussed.
 - Note that 'AGENT NAME' is a placeholder for the name of the agent you think should be assigned that task based on their conversation. It should be replaced with '{self.agent1.name}', '{self.agent2.name}', or 'TBD' if they have not come to a consensus on that task.
 - Include apostrophes as shown around the task names and agent names to ensure the dictionary is formatted correctly.
@@ -137,10 +139,7 @@ Rules:
 - Do not inclue any headers like 'python' or 'json'.
 - Do not respond with any extra text, not even an introduction. Simply return the following, replacing 'AGENT NAME' as needed:
 
-		"""
-		self.moderatorAgent.systemInstructions = f"""
-You have just received a conversation between {self.agent1.name} and {self.agent2.name}. You are the moderator for this task allocation conversation.
-These two partners have been asked to allocate {len(self.tasks)} tasks between each other based on their own Probability of Success Rates (PSRs) for each task.""" + rulesStr
+"""
 
 		self.moderatorAgent.systemInstructions += "{"
 		for task, _, _ in self.tasks:
@@ -173,7 +172,6 @@ These two partners have been asked to allocate {len(self.tasks)} tasks between e
 
 				
 		disagreedTasks = "" # str of tasks that the agents disagreed on
-
 		index = 0
 		for task, agent in consensusDict.items():
 			assignedTask = task.lower().strip()
@@ -184,6 +182,7 @@ These two partners have been asked to allocate {len(self.tasks)} tasks between e
 				if assignedTask == task.lower().strip():
 					assignedTaskInTasks = True
 					break
+ 
 			if not assignedTaskInTasks:
 				print(f"{Fore.RED}Error: Invalid task name in consensus: {assignedTask}{Fore.RESET}")
 				print(f"Raw Consensus: \n{rawConsensus}{Fore.RESET}")
@@ -308,7 +307,7 @@ def main():
 	numIterations = 6
 	agent1 = Agent("Finn")
 	agent2 = Agent("Jake")
-	tasks = [("Task 1", 6, 4), ("Task 2", 8, 2), ("Task 3", 9, 3), ("Task 4", 7, 5)]
+	tasks = [("Task A", 6, 4), ("Task B", 8, 2), ("Task C", 9, 3), ("Task D", 7, 5)]
 	domain = Domain(agent1, agent2, tasks)
 	domain.assignTasks(numIterations)
 
