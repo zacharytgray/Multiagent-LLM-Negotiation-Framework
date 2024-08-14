@@ -28,7 +28,7 @@ class Agent:
 		self.assignedTasks = []
 		self.numTokensGenerated = 0
 		self.memoryBuffer = []
-		self.model = 'gemma2:2b'
+		self.model = 'llama3.1:8b'
 		self.temperature = 0.3
 		self.instructionsFilename = "systemInstructions.txt"
 		self.systemInstructions = f"Your name is {self.name}. "
@@ -49,26 +49,38 @@ class Agent:
 
 	def queryModel(self):
 		def model_query():
-			response = ollama.chat(model=self.model, messages=self.memoryBuffer, options = {'temperature': self.temperature,})
+			response = ollama.chat(model=self.model, messages=self.memoryBuffer, options = {'temperature': self.temperature})
 			self.numTokensGenerated += response['eval_count']
 			return response['message']['content'].strip()
 		with concurrent.futures.ThreadPoolExecutor() as executor:
 			future = executor.submit(model_query)
 			try:
-				return future.result(timeout=300) # 300 seconds, or 5 minutes
+				numMinutesTimeout = 5 # minutes
+				return future.result(timeout= 60 * numMinutesTimeout)
 			except concurrent.futures.TimeoutError:
 				print(f"{Fore.RED}Error: Timeout in model query.{Fore.RESET}")
 				return "TIMEOUTERROR"
 		
 	def run(self, role, inputText):
 		self.addToMemoryBuffer(role, inputText)
-		response = self.queryModel()
-		if response == "TIMEOUTERROR":
-			self.addToMemoryBuffer('system', "Your partner took too long to respond. Please repeat your previous statement.")
-		else:
-			self.addToMemoryBuffer('assistant', response)
-		if not response:
-			print(f"{Fore.RED}Error: No response from {self.name}.{Fore.RESET}")
+		timeoutStr = "You took too long to respond. Please try again, avoiding any infinite loops."
+      			
+		withinTimeLimit = False
+		hasResponse = False
+		while not withinTimeLimit and not hasResponse:
+			response = self.queryModel()
+			if response == "TIMEOUTERROR":
+				if self.memoryBuffer[-1].get('message') != timeoutStr:
+					self.addToMemoryBuffer('user', timeoutStr)
+			else:
+				self.addToMemoryBuffer('assistant', response)
+				hasResponse = True
+
+			if response:
+				hasResponse = True
+			else:
+				print(f"{Fore.RED}Error: No response from {self.name}.{Fore.RESET}")
+
 		return response.strip()
 	
 	def printMemoryBuffer(self, otherAgent):
