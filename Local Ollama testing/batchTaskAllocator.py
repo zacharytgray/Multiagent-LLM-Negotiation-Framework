@@ -56,7 +56,7 @@ class Agent:
 			future = executor.submit(model_query)
 			try:
 				numMinutesTimeout = 5 # minutes
-				return future.result(timeout= 60 * numMinutesTimeout)
+				return future.result(timeout = (60 * numMinutesTimeout))
 			except concurrent.futures.TimeoutError:
 				print(f"{Fore.RED}Error: Timeout in model query.{Fore.RESET}")
 				return "TIMEOUTERROR"
@@ -68,18 +68,21 @@ class Agent:
 		withinTimeLimit = False
 		hasResponse = False
 		while not withinTimeLimit and not hasResponse:
+			withinTimeLimit = False
+			hasResponse = False
 			response = self.queryModel()
-			if response == "TIMEOUTERROR":
-				if self.memoryBuffer[-1].get('message') != timeoutStr:
-					self.addToMemoryBuffer('user', timeoutStr)
-			else:
-				self.addToMemoryBuffer('assistant', response)
-				hasResponse = True
-
+   
 			if response:
 				hasResponse = True
 			else:
 				print(f"{Fore.RED}Error: No response from {self.name}.{Fore.RESET}")
+    
+			if response == "TIMEOUTERROR":
+				if self.memoryBuffer[-1].get('content') != timeoutStr:
+					print(f"{Fore.RED}Timeout: {self.name} took too long to respond. Trying again.{Fore.RESET}")
+					self.addToMemoryBuffer('user', timeoutStr)
+			else:
+				self.addToMemoryBuffer('assistant', response)
 
 		return response.strip()
 	
