@@ -1,9 +1,0 @@
-TASK ALLOCATION LOG
-
-Number of Tasks to Allocate: 4
-Number of Rounds: 1
-Default Number of Conversation Iterations Per Round: 4
-Allocation Score Ceiling: Allocations must be less than 15% away from the optimal solution
-LLM Being Used to Allocate Tasks: gpt-4o-mini
-
-~~~~~~~~~~~~~~~~~~~~~~~~~  ROUND 1 OF 1  ~~~~~~~~~~~~~~~~~~~~~~~~~
