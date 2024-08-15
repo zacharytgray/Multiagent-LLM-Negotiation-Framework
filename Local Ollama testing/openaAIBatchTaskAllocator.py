@@ -2,11 +2,13 @@ import ast
 import os
 from colorama import Fore
 import concurrent.futures
-import openai
+from openai import OpenAI
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv("/Users/zacharytgray/Documents/GitHub/Ollama-LLM-Sandbox/keys.env")
 openai_api_key = os.getenv("OPENAI_API_KEY")
-openai.api_key = openai_api_key
+if openai_api_key is None:
+	print("API key for OpenAI not found.")
+client = OpenAI(api_key=openai_api_key)
 
 def main():
 
@@ -64,40 +66,37 @@ class Agent:
 	def addToMemoryBuffer(self, role, inputText): #role is either 'user', 'assistant', or 'system'
 		self.memoryBuffer.append({'role':role, 'content': inputText})
 
-	# def queryModel(self):
-	# 	def model_query():
-	# 		response = openai.chat.completions.create(
-	# 		model=self.model,
-	# 		messages=self.memoryBuffer
-	# 		)
-	# 		self.numTokensGenerated += response.usage.total_tokens
-	# 		return response.choices[0].message.content
-
-	# 	with concurrent.futures.ThreadPoolExecutor() as executor:
-	# 		future = executor.submit(model_query)
-	# 		try:
-	# 			numMinutesTimeout = 5 # minutes
-	# 			return future.result(timeout = (60 * numMinutesTimeout))
-	# 		except concurrent.futures.TimeoutError:
-	# 			print(f"{Fore.RED}Error: Timeout in model query.{Fore.RESET}")
-	# 			return "TIMEOUTERROR"
 	def queryModel(self):
 		def model_query():
-			response = openai.ChatCompletion.create(
-				model=self.model,
-				messages=self.memoryBuffer
+			response = client.chat.completions.create(
+			model=self.model,
+			messages=self.memoryBuffer
 			)
-			self.numTokensGenerated += response['usage']['total_tokens']
-			return response['choices'][0]['message']['content']
+			self.numTokensGenerated += response.usage.total_tokens
+			return response.choices[0].message.content
 
 		with concurrent.futures.ThreadPoolExecutor() as executor:
 			future = executor.submit(model_query)
 			try:
-				numMinutesTimeout = 5  # minutes
-				return future.result(timeout=(60 * numMinutesTimeout))
+				numMinutesTimeout = 5 # minutes
+				return future.result(timeout = (60 * numMinutesTimeout))
 			except concurrent.futures.TimeoutError:
 				print(f"{Fore.RED}Error: Timeout in model query.{Fore.RESET}")
 				return "TIMEOUTERROR"
+	# def queryModel(self):
+	# 	def model_query():
+	# 		response = client.chat.completions.create(model=self.model,messages=self.memoryBuffer)
+	# 		self.numTokensGenerated += response['usage']['total_tokens']
+	# 		return response['choices'][0]['message']['content']
+
+	# 	with concurrent.futures.ThreadPoolExecutor() as executor:
+	# 		future = executor.submit(model_query)
+	# 		try:
+	# 			numMinutesTimeout = 5  # minutes
+	# 			return future.result(timeout=(60 * numMinutesTimeout))
+	# 		except concurrent.futures.TimeoutError:
+	# 			print(f"{Fore.RED}Error: Timeout in model query.{Fore.RESET}")
+	# 			return "TIMEOUTERROR"
 		
 	def run(self, role, inputText):
 		self.addToMemoryBuffer(role, inputText)
