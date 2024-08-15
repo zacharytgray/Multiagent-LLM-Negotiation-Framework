@@ -10,7 +10,7 @@ openai.api_key = openai_api_key
 
 def main():
 
-	numIterations = 6
+	numIterations = 4
 	agent1 = Agent("Finn")
 	agent2 = Agent("Jake")
 	tasks = [("Task A", 6, 4), ("Task B", 8, 2), ("Task C", 9, 3), ("Task D", 7, 5)]
