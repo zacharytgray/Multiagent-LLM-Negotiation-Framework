@@ -55,7 +55,7 @@ class Agent:
 		with concurrent.futures.ThreadPoolExecutor() as executor:
 			future = executor.submit(model_query)
 			try:
-				numMinutesTimeout = 5 # minutes
+				numMinutesTimeout = 12 # minutes
 				return future.result(timeout = (60 * numMinutesTimeout))
 			except concurrent.futures.TimeoutError:
 				print(f"{Fore.RED}Error: Timeout in model query.{Fore.RESET}")
@@ -78,9 +78,8 @@ class Agent:
 				print(f"{Fore.RED}Error: No response from {self.name}.{Fore.RESET}")
     
 			if response == "TIMEOUTERROR":
-				if self.memoryBuffer[-1].get('content') != timeoutStr:
-					print(f"{Fore.RED}Timeout: {self.name} took too long to respond. Trying again.{Fore.RESET}")
-					self.addToMemoryBuffer('user', timeoutStr)
+				print(f"{Fore.RED}Timeout: {self.name} took too long to respond. Trying again.{Fore.RESET}")
+				self.addToMemoryBuffer('user', timeoutStr)
 			else:
 				self.addToMemoryBuffer('assistant', response)
 
