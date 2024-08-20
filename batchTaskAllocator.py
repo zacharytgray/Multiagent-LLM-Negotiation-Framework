@@ -82,7 +82,7 @@ class Agent:
 				self.addToMemoryBuffer('user', timeoutStr)
 			else:
 				self.addToMemoryBuffer('assistant', response)
-
+    
 		return response.strip()
 	
 	def printMemoryBuffer(self, otherAgent):
@@ -173,6 +173,10 @@ Rules:
 		disagreedTasks = "" # str of tasks that the agents disagreed on
 		index = 0
 		for task, agent in consensusDict.items():
+			if not task or not agent:
+				print(f"{Fore.RED}Error: Empty task or agent name in consensus: {task}, {agent}{Fore.RESET}")
+				print(f"Raw Consensus: \n{rawConsensus}{Fore.RESET}")
+				return False
 			assignedTask = task.lower().strip()
 			assignedAgent = agent.lower().strip()
    
