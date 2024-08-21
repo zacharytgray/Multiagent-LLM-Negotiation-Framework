@@ -104,7 +104,7 @@ class Agent:
       			
 		withinTimeLimit = False
 		hasResponse = False
-		while not withinTimeLimit and not hasResponse:
+		while not withinTimeLimit or not hasResponse:
 			withinTimeLimit = False
 			hasResponse = False
 			response = self.queryModel()
@@ -119,6 +119,7 @@ class Agent:
 					print(f"{Fore.RED}Timeout: {self.name} took too long to respond. Trying again.{Fore.RESET}")
 					self.addToMemoryBuffer('user', timeoutStr)
 			else:
+				withinTimeLimit = True
 				self.addToMemoryBuffer('assistant', response)
 
 		return response.strip()
@@ -214,7 +215,7 @@ Rules:
 			if not task or not agent:
 				print(f"{Fore.RED}Error: Empty task or agent name in consensus: {task}, {agent}{Fore.RESET}")
 				print(f"Raw Consensus: \n{rawConsensus}{Fore.RESET}")
-			return False
+				return False
 			assignedTask = task.lower().strip()
 			assignedAgent = agent.lower().strip()
    

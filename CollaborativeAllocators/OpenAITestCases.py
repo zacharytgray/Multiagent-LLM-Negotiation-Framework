@@ -1,19 +1,19 @@
 import unittest
 import random
 from colorama import Fore
-import batchTaskAllocator as bta
+import CollaborativeAllocators.OpenaAICollaborativeTaskAllocator as bta
 import time
 import itertools
 from datetime import datetime
 
 def main():
-    numRounds = 100 # Number of rounds to be run
-    numTasks = 6 # Number of tasks to be assigned per round
-    numIterations = 6 # Number of conversation iterations per round
+    numRounds = 1 # Number of rounds to be run
+    numTasks = 4 # Number of tasks to be assigned per round
+    numIterations = 4 # Number of conversation iterations per round
     allocationScoreCeiling = 15 # The maximum percentage away from the optimal allocation that is considered passing
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    logFilename = f"log_{timestamp}.txt"
+    logFilename = f"log__ColTA_{timestamp}.txt"
 
     f = open(logFilename, "w")
     f.write("TASK ALLOCATION LOG\n\n")
@@ -155,7 +155,7 @@ def add_test_methods(numRounds, numTasks, numIterations, allocationScoreCeiling,
 
     f = open(logFilename, "a")
     agent = bta.Agent("Dummy Agent")
-    f.write(f"LLM Being Used to Allocate Tasks: {agent.model}\n")
+    f.write(f"LLM Being Used to Allocate Tasks: {agent.model}\n\n")
     f.close()
 
     for i in range(numRounds):

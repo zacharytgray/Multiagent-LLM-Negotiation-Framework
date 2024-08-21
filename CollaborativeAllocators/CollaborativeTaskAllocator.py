@@ -30,7 +30,7 @@ class Agent:
 		self.memoryBuffer = []
 		self.model = 'llama3.1:8b'
 		self.temperature = 0.3
-		self.instructionsFilename = "systemInstructions.txt"
+		self.instructionsFilename = "CollaborativeSystemInstructions.txt"
 		self.systemInstructions = f"Your name is {self.name}. "
 
 		try:
@@ -67,7 +67,7 @@ class Agent:
       			
 		withinTimeLimit = False
 		hasResponse = False
-		while not withinTimeLimit and not hasResponse:
+		while not withinTimeLimit or not hasResponse:
 			withinTimeLimit = False
 			hasResponse = False
 			response = self.queryModel()
@@ -81,6 +81,7 @@ class Agent:
 				print(f"{Fore.RED}Timeout: {self.name} took too long to respond. Trying again.{Fore.RESET}")
 				self.addToMemoryBuffer('user', timeoutStr)
 			else:
+				withinTimeLimit = True
 				self.addToMemoryBuffer('assistant', response)
     
 		return response.strip()
