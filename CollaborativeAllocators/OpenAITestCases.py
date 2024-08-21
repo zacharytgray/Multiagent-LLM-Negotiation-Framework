@@ -1,7 +1,7 @@
 import unittest
 import random
 from colorama import Fore
-import CollaborativeAllocators.OpenaAICollaborativeTaskAllocator as bta
+import OpenaAICollaborativeTaskAllocator as bta
 import time
 import itertools
 from datetime import datetime

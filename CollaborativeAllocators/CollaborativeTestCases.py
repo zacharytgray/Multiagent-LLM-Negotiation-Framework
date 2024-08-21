@@ -1,7 +1,7 @@
 import unittest
 import random
 from colorama import Fore
-import CollaborativeAllocators.collaborativeTaskAllocator as bta
+import CollaborativeTaskAllocator as bta
 import time
 import itertools
 from datetime import datetime
@@ -13,7 +13,7 @@ def main():
     allocationScoreCeiling = 15 # The maximum percentage away from the optimal allocation that is considered passing
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    logFilename = f"log__ColTA_{timestamp}.txt"
+    logFilename = f"log_ColTA_{timestamp}.txt"
 
     f = open(logFilename, "w")
     f.write("TASK ALLOCATION LOG\n\n")

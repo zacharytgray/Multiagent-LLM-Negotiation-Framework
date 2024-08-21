@@ -49,7 +49,7 @@ class Agent:
 		self.memoryBuffer = []
 		self.model = 'gpt-4o-mini'
 		self.temperature = 0.3
-		self.instructionsFilename = "systemInstructions.txt"
+		self.instructionsFilename = "CollaborativeAllocators/CollaborativeSystemInstructions.txt"
 		self.systemInstructions = f"Your name is {self.name}. "
 
 		try:

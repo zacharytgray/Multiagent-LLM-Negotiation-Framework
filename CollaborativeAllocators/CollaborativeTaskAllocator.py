@@ -30,7 +30,7 @@ class Agent:
 		self.memoryBuffer = []
 		self.model = 'llama3.1:8b'
 		self.temperature = 0.3
-		self.instructionsFilename = "CollaborativeSystemInstructions.txt"
+		self.instructionsFilename = "CollaborativeAllocators/CollaborativeSystemInstructions.txt"
 		self.systemInstructions = f"Your name is {self.name}. "
 
 		try:
