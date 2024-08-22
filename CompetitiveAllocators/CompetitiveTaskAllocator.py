@@ -35,7 +35,7 @@ class Agent:
 
 	def queryModel(self):
 		def model_query():
-			response = ollama.chat(model=self.model, messages=self.memoryBuffer, options = {'temperature': self.temperature})
+			response = ollama.chat(model=self.model, messages=self.memoryBuffer, options = {'temperature': self.temperature, "num_predict": 100},)
 			self.numTokensGenerated += response['eval_count']
 			return response['message']['content'].strip()
 		with concurrent.futures.ThreadPoolExecutor() as executor:

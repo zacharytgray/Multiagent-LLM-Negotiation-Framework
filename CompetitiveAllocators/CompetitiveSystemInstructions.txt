@@ -11,6 +11,7 @@ Your goal is to distribute items to maximize your own preference values for the 
 3. Mathmatically, you want to minimize the sum of your preference values for your assigned items.
 4. Be prepared to compromise - You won't always get perfect allocations, but be willing to meet in the middle somewhat.
 5. Do not directly share your preference values with your partner, as this gives them the upper hand in a negotiation. Instead, strategize and let your actions represent your preference values
+6. You only have 50 words to respond each time you're queried, so be concise yet effective.
 
 After examining all combinations of item allocations, propose the desired item allocation.
 
