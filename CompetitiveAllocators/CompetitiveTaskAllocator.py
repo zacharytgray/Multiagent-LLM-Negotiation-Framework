@@ -32,9 +32,17 @@ class Agent:
 
 	def addToMemoryBuffer(self, role, inputText): #role is either 'user', 'assistant', or 'system'
 		self.memoryBuffer.append({'role':role, 'content': inputText})
+  
+	def validateMessages(messages):
+		valid_roles = {"system", "user", "assistant"}
+		for message in messages:
+			if "role" not in message or message["role"] not in valid_roles:
+				print(messages)
+				raise ValueError(f"Invalid message role: {message}")
 
 	def queryModel(self):
 		def model_query():
+			self.validateMessages(self.memoryBuffer)  # Validate messages
 			response = ollama.chat(model=self.model, messages=self.memoryBuffer, options = {'temperature': self.temperature, 'num_predict': 100},)
 			self.numTokensGenerated += response['eval_count']
 			return response['message']['content'].strip()
@@ -248,7 +256,6 @@ Rules:
 
 		if disagreedItems != "":
 			print(f"{Fore.RED}Disagreed on items: {disagreedItems}{Fore.RESET}")
-			print(f"Raw Consensus: \n{rawConsensus}{Fore.RESET}")
 			self.agent1.addToMemoryBuffer('user', f"You did not come to complete agreement with {self.agent2.name} on item(s) {disagreedItems[:-1]}. Please continue discussion to finalize the allocation. You must allocate all the items.")
 			self.agent2.addToMemoryBuffer('user', f"You did not come to complete agreement with {self.agent1.name} on item(s) {disagreedItems[:-1]}. Please continue discussion to finalize the allocation. You must allocate all the items.")
 			return False
