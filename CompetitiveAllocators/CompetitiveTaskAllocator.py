@@ -162,6 +162,7 @@ Rules:
 - You are not going to change their decisions in any way. 
 - Your job is to simply show me the results of their conversation in a dictionary format: {{'Item A':'AGENT NAME', 'Item B':'AGENT NAME', ...}}
 - Return the results that they seem to agree on the most. If they do not agree on an item, return 'TBD' for that item.
+- If they decide to collaborate or split an item, return 'COLLAB' for that item.
 - Note that 'AGENT NAME' is a placeholder for the name of the agent you think should be assigned that item based on their conversation. It should be replaced with '{self.agent1.name}', '{self.agent2.name}', or 'TBD' if they have not come to a consensus on that item.
 - Include apostrophes as shown around the item names and agent names to ensure the dictionary is formatted correctly.
 - To ensure your message is a valid dictionary, make sure your response starts with an open curly bracket and ends with a curly bracket. 
@@ -234,6 +235,11 @@ Rules:
 					itemidx = self.getItemIndex(assignedItem)
 					print(f"No consensus reached for {self.items[itemidx].name}.")
 					disagreedItems += assignedItem + ", "
+				elif assignedAgent == "collab":
+					itemidx = self.getItemIndex(assignedItem)
+					self.agent1.addToMemoryBuffer('user', f"You and {self.agent2.name} have incorrectly decided to collaborate on or split item {self.items[itemidx].name}. Splitting an item is not allowed. Please reevaluate your decisions conversationally, assigning each item to just one person. Ensure every item gets allocted.")
+					self.agent2.addToMemoryBuffer('user', f"You and {self.agent1.name} have incorrectly decided to collaborate on or split item {self.items[itemidx].name}. Splitting an item is not allowed. Please reevaluate your decisions conversationally, assigning each item to just one person. Ensure every item gets allocted.")
+					return False
 				else:
 					print(f"{Fore.RED}Error: Invalid agent name in consensus: {assignedAgent} not equal to {self.agent1.name.lower().strip()} or {self.agent2.name.lower().strip()}{Fore.RESET}")
 					print(f"Raw Consensus: \n{rawConsensus}{Fore.RESET}")
