@@ -20,7 +20,7 @@ class Agent:
 		self.memoryBuffer = []
 		self.model = model
 		self.temperature = 0.3
-		self.instructionsFilename = "CompetitiveAllocators/competitiveSystemInstructions.txt"
+		self.instructionsFilename = "CompetitiveAllocators/CompetitiveSystemInstructions.txt"
 		self.systemInstructions = f"Your name is {self.name}. "
 
 		try:
