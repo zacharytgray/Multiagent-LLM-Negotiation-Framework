@@ -33,7 +33,7 @@ class Agent:
 	def addToMemoryBuffer(self, role, inputText): #role is either 'user', 'assistant', or 'system'
 		self.memoryBuffer.append({'role':role, 'content': inputText})
   
-	def validateMessages(messages):
+	def validateMessages(self, messages):
 		valid_roles = {"system", "user", "assistant"}
 		for message in messages:
 			if "role" not in message or message["role"] not in valid_roles:
