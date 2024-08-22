@@ -243,8 +243,8 @@ Rules:
 		if disagreedItems != "":
 			print(f"{Fore.RED}Disagreed on items: {disagreedItems}{Fore.RESET}")
 			print(f"Raw Consensus: \n{rawConsensus}{Fore.RESET}")
-			self.agent1.addToMemoryBuffer('system', f"You did not come to complete agreement with {self.agent2.name} on item(s) {disagreedItems[:-1]}. Please continue discussion to finalize the allocation. You must allocate all the items.")
-			self.agent2.addToMemoryBuffer('system', f"You did not come to complete agreement with {self.agent1.name} on item(s) {disagreedItems[:-1]}. Please continue discussion to finalize the allocation. You must allocate all the items.")
+			self.agent1.addToMemoryBuffer('user', f"You did not come to complete agreement with {self.agent2.name} on item(s) {disagreedItems[:-1]}. Please continue discussion to finalize the allocation. You must allocate all the items.")
+			self.agent2.addToMemoryBuffer('user', f"You did not come to complete agreement with {self.agent1.name} on item(s) {disagreedItems[:-1]}. Please continue discussion to finalize the allocation. You must allocate all the items.")
 			return False
 
 		if len(boardState.getItems(self.agent1.name)) + len(boardState.getItems(self.agent2.name)) > self.numItems:
@@ -265,12 +265,12 @@ Rules:
    
 			delta = abs(len(boardState.getItems(self.agent1.name)) - len(boardState.getItems(self.agent2.name)))
 			if len(boardState.getItems(self.agent1.name)) > len(boardState.getItems(self.agent2.name)):
-				self.agent1.addToMemoryBuffer("system", f"You and your partner did not split the items evenly. {self.agent1.name} was assigned {delta} more item(s) than {self.agent2.name}. Reevaluate your decisions conversationally until each of you has {self.numItems/2} items assigned.")
-				self.agent2.addToMemoryBuffer("system", f"You and your partner did not split the items evenly. {self.agent1.name} was assigned {delta} more item(s) than {self.agent2.name}. Reevaluate your decisions conversationally until each of you has {self.numItems/2} items assigned.")
+				self.agent1.addToMemoryBuffer("user", f"You and your partner did not split the items evenly. {self.agent1.name} was assigned {delta} more item(s) than {self.agent2.name}. Reevaluate your decisions conversationally until each of you has {self.numItems/2} items assigned.")
+				self.agent2.addToMemoryBuffer("usr", f"You and your partner did not split the items evenly. {self.agent1.name} was assigned {delta} more item(s) than {self.agent2.name}. Reevaluate your decisions conversationally until each of you has {self.numItems/2} items assigned.")
 				return False
 			else:
-				self.agent1.addToMemoryBuffer("system", f"You and your partner did not split the items evenly. {self.agent2.name} was assigned {delta} more item(s) than {self.agent1.name}. Reevaluate your decisions conversationally until each of you has {self.numItems/2} items assigned.")
-				self.agent2.addToMemoryBuffer("system", f"You and your partner did not split the items evenly. {self.agent2.name} was assigned {delta} more item(s) than {self.agent1.name}. Reevaluate your decisions conversationally until each of you has {self.numItems/2} items assigned.")
+				self.agent1.addToMemoryBuffer("user", f"You and your partner did not split the items evenly. {self.agent2.name} was assigned {delta} more item(s) than {self.agent1.name}. Reevaluate your decisions conversationally until each of you has {self.numItems/2} items assigned.")
+				self.agent2.addToMemoryBuffer("user", f"You and your partner did not split the items evenly. {self.agent2.name} was assigned {delta} more item(s) than {self.agent1.name}. Reevaluate your decisions conversationally until each of you has {self.numItems/2} items assigned.")
 				return False
   
 		return True
