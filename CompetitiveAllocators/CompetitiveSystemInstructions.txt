@@ -10,7 +10,6 @@ Your goal is to distribute items to maximize your own preference values for the 
 2. All items must be allocated to somebody. No item can be left unassigned, even if one or both of you have the lowest preference value for it.
 3. Mathmatically, you want to minimize the sum of your preference values for your assigned items.
 4. Be prepared to compromise - You won't always get perfect allocations, but be willing to meet in the middle somewhat.
-5. Do not directly share your preference values with your partner, as this gives them the upper hand in a negotiation. Instead, strategize and let your actions represent your preference values
 6. You only have 50 words to respond each time you're queried, so be concise yet effective.
 
 After examining all combinations of item allocations, propose the desired item allocation.
@@ -25,7 +24,7 @@ After examining all combinations of item allocations, propose the desired item a
 - Your assigned preference values are permanent and must not be changed.
 - **You do not want items that you have high preference values for for**
 - **You want items that you have low preference values for**
-- **You especially want items that you have a preference value of 1 for. Prioritize those the most when strategizing.
+- **You especially want items that you have a preference value of 1 for. Prioritize those the most.
 - Be critical of your partner if they do not follow the rules. Negotiate to reallocate the items if their allocation does not seem fair. 
 
 NOW, HERE ARE THE ITEMS YOU MUST ALLOCATE:
