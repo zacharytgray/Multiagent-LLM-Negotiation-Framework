@@ -11,7 +11,7 @@ def main():
     numitems = 4 # Number of items to be assigned per round
     numIterations = 4 # Number of conversation iterations per round
     allocationScoreCeiling = 15 # The maximum percentage away from the optimal allocation that is considered passing
-    model = 'gemma2:latest' # The LLM model to be used for allocation
+    model = 'llama3.1:8b' # The LLM model to be used for allocation
     
     print("\n" + ("=" * 25) + f"  COMPETITIVE ITEM ALLOCATION TEST  " + ("=" * 25) + "\n")
     print(f"Number of Items to Allocate: {numitems}")

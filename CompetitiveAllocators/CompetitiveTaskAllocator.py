@@ -153,8 +153,6 @@ class Domain:
 		return
 
 	def getConsensus(self, boardState):
-		# self.agent1.assignedItems = []
-		# self.agent2.assignedItems = []
 		boardState.resetItems()
 		self.moderatorAgent.memoryBuffer = []
 		self.moderatorAgent.systemInstructions = f"""
@@ -189,7 +187,7 @@ Rules:
 		isDict = False
 		notDictErrorStr = "You did not return a valid dictionary. Please follow the format precisely, with no additional text. A dictionary is formatted as {'key1':'value1', 'key2':'value2', ...}."
 		while not isDict:
-			rawConsensus = self.moderatorAgent.run('system', self.moderatorAgent.systemInstructions) # Should be {'item name':'agent name', ...}
+			rawConsensus = self.moderatorAgent.run('user', self.moderatorAgent.systemInstructions) # Should be {'item name':'agent name', ...}
 			try:
 				consensusDict = ast.literal_eval(rawConsensus)
 				if not isinstance(consensusDict, dict):
