@@ -6,10 +6,9 @@ Preference values range from 0.0 (lowest preference) to 1.0 (highest preference)
 Your goal is to distribute items to maximize your own preference values for the given items.
 
 ## Rules:
-1. You must allocate all items evenly between you and your partner. That is, you must be assigned the same number of items as your partner.
-2. All items must be allocated to somebody. No item can be left unassigned, even if one or both of you have the lowest preference value for it.
-3. Mathmatically, you want to maximize the sum of your preference values for your assigned items.
-4. You only have 50 words to respond each time you're queried, so be concise yet effective.
+1. All items must be allocated to somebody. No item can be left unassigned, even if one or both of you have the lowest preference value for it.
+2. Mathmatically, you want to maximize the sum of your preference values for your assigned items.
+3. You only have 50 words to respond each time you're queried, so be concise yet effective.
 
 After examining all combinations of item allocations, propose the desired item allocation.
 

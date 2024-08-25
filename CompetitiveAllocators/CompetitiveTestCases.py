@@ -36,16 +36,22 @@ def main():
     
     # ta = TestAgent()
     # ta.setUp(4)
-    # items = [compTA.Item("A", 1, 2), compTA.Item("B", 2, 1), compTA.Item("C", 3, 3), compTA.Item("D", 4, 4)]
-    # print("Optimal: " + str(ta.getOptimalAllocation(items)))
-    # print("Has Optimal: " + str(ta.hasOptimalAllocation([items[0], items[2]], [items[1], items[3]], 9)))
-    # print("Total Distance from Optimal: " + str(ta.getTotalDistanceFromOptimal([items[0], items[2]], [items[1], items[3]], 7)))
+    # items = [compTA.Item("A", 1, 4), compTA.Item("B", 2, 3), compTA.Item("C", 3, 2), compTA.Item("D", 4, 1)]
+    # agent1Items, agent2Items, bestPrefSum = ta.getOptimalAllocation(items)
+    # print("Optimal Allocation:")
+    # print("Agent 1: " + str(agent1Items))
+    # print("Agent 2: " + str(agent2Items))
+    # print("Best Pref Sum: " + str(bestPrefSum))
+    
+    # print("Pref Sum: " + str(ta.calculatePrefSum(agent1Items, agent2Items)))
+    # print("Has Optimal: " + str(ta.hasOptimalAllocation(agent1Items, agent2Items, bestPrefSum)))
+    # print("Total Distance from Optimal: " + str(ta.getTotalDistanceFromOptimal(agent1Items, agent2Items, bestPrefSum)))
 
 class TestAgent(unittest.TestCase):
         
-    def getOptimalAllocation(self, items: list[compTA.Item]):
+    def getOptimalAllocation(self, items: list[compTA.Item]): # Does not have even distribution constraint
         optimalSolution = []
-        lowestPrefSum = float('inf')
+        bestPrefSum = 0
         n = len(items)
         half_n = n // 2
 
@@ -53,23 +59,23 @@ class TestAgent(unittest.TestCase):
         if n % 2 != 0:
             raise ValueError("The number of items must be even to form two equal groups.")
         
-        # Generate all combinations of half2_n items
-        all_combinations = itertools.combinations(items, half_n)
+        # Generate all combinations of n items
+        all_combinations = []
+        for r in range(0, n):
+            all_combinations.extend(itertools.combinations(items, r))
+
                 
         for comb in all_combinations:
             group1 = comb
             group2 = tuple(item for item in items if item not in group1)
             
-            # Calculate the sum of the first prefSum for group1 and the second prefSum for group2
-            sum1 = sum(item.pref1 for item in group1)
-            sum2 = sum(item.pref2 for item in group2)
-            PrefSum = sum1 + sum2
+            PrefSum = self.calculatePrefSum(group1, group2)
             
-            if PrefSum < lowestPrefSum:
-                lowestPrefSum = PrefSum
+            if PrefSum > bestPrefSum:
+                bestPrefSum = PrefSum
                 optimalSolution = [group1, group2]
 
-        return optimalSolution[0], optimalSolution[1], lowestPrefSum
+        return optimalSolution[0], optimalSolution[1], bestPrefSum
     
     def calculatePrefSum(self, agent1items, agent2items):
         p1 = sum(item.pref1 for item in agent1items)

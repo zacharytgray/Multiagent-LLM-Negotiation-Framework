@@ -272,21 +272,6 @@ Rules:
 			print(f"{self.agent1.name}'s items: {boardState.getItems(self.agent1.name)}")
 			print(f"{self.agent2.name}'s items: {boardState.getItems(self.agent2.name)}{Fore.RESET}")
 			return False
-
-		if len(boardState.getItems(self.agent1.name)) != len(boardState.getItems(self.agent2.name)):
-			print(f"{Fore.RED}Error: items not evenly split between agents.")
-			print(f"{self.agent1.name}'s items: {boardState.getItems(self.agent1.name)}")
-			print(f"{self.agent2.name}'s items: {boardState.getItems(self.agent2.name)}{Fore.RESET}")
-   
-			delta = abs(len(boardState.getItems(self.agent1.name)) - len(boardState.getItems(self.agent2.name)))
-			if len(boardState.getItems(self.agent1.name)) > len(boardState.getItems(self.agent2.name)):
-				self.agent1.addToMemoryBuffer("user", f"You and your partner did not split the items evenly. {self.agent1.name} was assigned {delta} more item(s) than {self.agent2.name}. Reevaluate your decisions conversationally until each of you has {self.numItems/2} items assigned.")
-				self.agent2.addToMemoryBuffer("user", f"You and your partner did not split the items evenly. {self.agent1.name} was assigned {delta} more item(s) than {self.agent2.name}. Reevaluate your decisions conversationally until each of you has {self.numItems/2} items assigned.")
-				return False
-			else:
-				self.agent1.addToMemoryBuffer("user", f"You and your partner did not split the items evenly. {self.agent2.name} was assigned {delta} more item(s) than {self.agent1.name}. Reevaluate your decisions conversationally until each of you has {self.numItems/2} items assigned.")
-				self.agent2.addToMemoryBuffer("user", f"You and your partner did not split the items evenly. {self.agent2.name} was assigned {delta} more item(s) than {self.agent1.name}. Reevaluate your decisions conversationally until each of you has {self.numItems/2} items assigned.")
-				return False
   
 		return True
 
