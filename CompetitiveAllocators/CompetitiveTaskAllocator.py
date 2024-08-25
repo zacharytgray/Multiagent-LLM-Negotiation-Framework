@@ -23,13 +23,15 @@ class Agent:
 		self.instructionsFilename = systemInstructionsFilename
 		self.systemInstructions = f"Your name is {self.name}. "
 
-		try:
-			with open(self.instructionsFilename, "r") as f:
-				self.systemInstructions += f.read()
-			self.addToMemoryBuffer('system', self.systemInstructions)
-		except FileNotFoundError:
-			print(f"Error: {self.instructionsFilename} not found.")
-
+		if systemInstructionsFilename != "":
+			try:
+				with open(self.instructionsFilename, "r") as f:
+					self.systemInstructions += f.read()
+				self.addToMemoryBuffer('system', self.systemInstructions)
+			except FileNotFoundError:
+				print(f"Error: {self.instructionsFilename} not found.")
+				exit(1)
+		
 	def addToMemoryBuffer(self, role, inputText): #role is either 'user', 'assistant', or 'system'
 		self.memoryBuffer.append({'role':role, 'content': inputText})
   
@@ -139,9 +141,9 @@ class BoardState:
 	
 class Domain:
 	def __init__(self, items: list[Item], model: str) -> None:
-		self.agent1 = Agent("Agent 1", model, "CompetitiveAllocators/CompetitiveSystemInstructions.txt")
-		self.agent2 = Agent("Agent 2", model, "CompetitiveAllocators/CompetitiveSystemInstructions.txt")
-		self.moderatorAgent = Agent("Moderator", model)
+		self.agent1 = Agent("Agent 1", model, "CompetitiveAllocators/Agent1CompetitiveSystemInstructions.txt")
+		self.agent2 = Agent("Agent 2", model, "CompetitiveAllocators/Agent2CompetitiveSystemInstructions.txt")
+		self.moderatorAgent = Agent("Moderator", model, "")
 		self.items: list[Item] = items
 		self.numItems = len(items)
 		self.numConversationIterations = 0
