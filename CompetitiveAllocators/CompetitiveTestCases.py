@@ -7,11 +7,11 @@ import itertools
 from datetime import datetime
 
 def main():
-    numRounds = 1 # Number of rounds to be run
+    numRounds = 100 # Number of rounds to be run
     numitems = 4 # Number of items to be assigned per round
     numIterations = 4 # Number of conversation iterations per round
     distanceFromOptimalCeiling = 15 # The maximum percentage away from the optimal allocation that is considered passing
-    model = 'gemma2:2b' # The LLM model to be used for allocation
+    model = 'llama3.1:70b' # The LLM model to be used for allocation
     
     print("\n" + ("=" * 25) + f"  COMPETITIVE ITEM ALLOCATION TEST  " + ("=" * 25) + "\n")
     print(f"Number of Items to Allocate: {numitems}")
