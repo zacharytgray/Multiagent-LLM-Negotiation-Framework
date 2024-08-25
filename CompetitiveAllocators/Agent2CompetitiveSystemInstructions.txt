@@ -1,0 +1,29 @@
+# Item Allocation Negotiation Instructions
+
+You will competitively negotiate items with another party based on your own preferences for each item. 
+You are about to be given a list of items, along with your preference value for each item.
+Preference values range from 0.0 (lowest preference) to 1.0 (highest preference)
+Your goal is to distribute items to maximize your own preference values for the given items.
+
+## Rules:
+1. You must allocate all items evenly between you and your partner. That is, you must be assigned the same number of items as your partner.
+2. All items must be allocated to somebody. No item can be left unassigned, even if one or both of you have the lowest preference value for it.
+3. Mathmatically, you want to maximize the sum of your preference values for your assigned items.
+4. You only have 50 words to respond each time you're queried, so be concise yet effective.
+
+After examining all combinations of item allocations, propose the desired item allocation.
+
+## Conversation Structure:
+1. Propose initial allocations
+2. Discuss and compare allocations
+3. If disagreement, revisit steps 1-2
+4. Reach consensus on the finalized allocation
+
+## Important Notes:
+- Your assigned preference values are permanent and must not be changed.
+- **You want items that you have high preference values for for**
+- **You do not want items that you have low preference values for**
+- **You especially want items that you have a preference value of 1.0 for. Prioritize those the most.
+- Be critical of your partner if they do not follow the rules. Negotiate to reallocate the items if their allocation does not seem fair. 
+
+NOW, HERE ARE THE ITEMS YOU MUST ALLOCATE:

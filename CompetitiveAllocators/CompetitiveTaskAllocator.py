@@ -14,13 +14,13 @@ def logAssignedItems(fileName, boardState):
     f.close()
 
 class Agent:
-	def __init__(self, name, model) -> None:
+	def __init__(self, name, model, systemInstructionsFilename) -> None:
 		self.name = name
 		self.numTokensGenerated = 0
 		self.memoryBuffer = []
 		self.model = model
 		self.temperature = 0.3
-		self.instructionsFilename = "CompetitiveAllocators/CompetitiveSystemInstructions.txt"
+		self.instructionsFilename = systemInstructionsFilename
 		self.systemInstructions = f"Your name is {self.name}. "
 
 		try:
@@ -139,8 +139,8 @@ class BoardState:
 	
 class Domain:
 	def __init__(self, items: list[Item], model: str) -> None:
-		self.agent1 = Agent("Agent 1", model)
-		self.agent2 = Agent("Agent 2", model)
+		self.agent1 = Agent("Agent 1", model, "CompetitiveAllocators/CompetitiveSystemInstructions.txt")
+		self.agent2 = Agent("Agent 2", model, "CompetitiveAllocators/CompetitiveSystemInstructions.txt")
 		self.moderatorAgent = Agent("Moderator", model)
 		self.items: list[Item] = items
 		self.numItems = len(items)
