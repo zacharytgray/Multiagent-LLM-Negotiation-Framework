@@ -150,8 +150,8 @@ class Domain:
 		self.boardState = BoardState(self.agent1, self.agent2, items)
   
 		for item in self.items:
-			self.agent1.systemInstructions +=  f"\n- {item.name}: Your preference value for this item is {item.pref1} out of {self.numItems}."
-			self.agent2.systemInstructions +=  f"\n- {item.name}: Your preference value for this item is {item.pref2} out of {self.numItems}."
+			self.agent1.systemInstructions +=  f"\n- {item.name}: {self.agent1.name}, Your preference value for this item is {item.pref1} out of 1.0"
+			self.agent2.systemInstructions +=  f"\n- {item.name}: {self.agent2.name}, Your preference value for this item is {item.pref2} out of 1.0"
 		
 		self.agent1.systemInstructions += "\n\nLet's begin! Remember to be concise."
 		self.agent2.systemInstructions += "\n\nLet's begin! Remember to be concise."
@@ -342,7 +342,7 @@ def main():
 	agent1 = Agent("Agent 1")
 	agent2 = Agent("Agent 2")
  
-	# Pref levels are on a scale from 1 to numItems, where 1 is the most preffered item and numItems is the least preferred items
+	# Pref levels are on a scale from 0.0 to 1.0, where 1.0 is the most prefered item and 0.0 is the least preferred item
 	items = [('Item A', 3, 1), ('Item B', 2, 2), ('Item C', 1, 4), ('Item D', 4, 3)] # formatted as [('Task X', Pref1, Pref2), ...]
 	items = [Item(item[0], item[1], item[2]) for item in items]
 	domain = Domain(agent1, agent2, items)
