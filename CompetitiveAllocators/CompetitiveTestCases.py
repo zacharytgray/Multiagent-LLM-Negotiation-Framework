@@ -117,7 +117,7 @@ class TestAgent(unittest.TestCase):
             f.write("\n" + ("~" * 25) + f"  ROUND {round_num} OF {numRounds}  " + ("~" * 25) + "\n")
             f.close()
 
-        # Generate random items and prefSums
+        # Generate items and prefSums
         items = [] # list of Item objects
         itemNames = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
         
@@ -133,7 +133,7 @@ class TestAgent(unittest.TestCase):
         # prefValues1 = [0.1, 0.2, 0.3, 0.4]
         # prefValues2 = [0.1, 0.2, 0.3, 0.4]
         
-        for i in range(self.numItems):  # Generate random items
+        for i in range(self.numItems):  # Generate items
             item = f"Item {itemNames[i]}"
             pref1 = prefValues1[i]
             pref2 = prefValues2[i]
