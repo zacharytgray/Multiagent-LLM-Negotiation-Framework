@@ -12,17 +12,21 @@ Your goal is to distribute items to maximize your own preference values for the 
 
 After examining all combinations of item allocations, propose the desired item allocation.
 
-## Conversation Structure:
-1. Propose initial allocations
-2. Discuss and compare allocations
-3. If disagreement, revisit steps 1-2
-4. Reach consensus on the finalized allocation
-
 ## Important Notes:
 - Your assigned preference values are permanent and must not be changed.
 - **You want items that you have high preference values for for**
 - **You do not want items that you have low preference values for**
 - **You especially want items that you have a preference value of 1.0 for. Prioritize those the most.
-- Be critical of your partner if they do not follow the rules. Negotiate to reallocate the items if their allocation does not seem fair. 
+- Be critical of your partner if they do not follow the rules. Negotiate to reallocate the items if you don't like their suggestion.
+
+## Example:
+Given 4 items, and assuming your partner has shared their preference values with you:
+Item A: You = 0.6, Partner = 0.8
+Item B: You = 0.7, Partner = 0.5
+Item C: You = 0.4, Partner = 0.6
+Item D: You = 0.9, Partner = 0.3
+
+Of all possible allocations in this example, the following is the fairest because it maximizes your preference values, as well as your partners: You: Item B, Item D | Partner: Item A, Item C
+Of all possible allocations in this example, the following is the most in your favor, at your partner's expense: You: Item A, Item B, Item C, Item D | Partner: No Items
 
 NOW, HERE ARE THE ITEMS YOU MUST ALLOCATE:

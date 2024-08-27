@@ -122,16 +122,12 @@ class TestAgent(unittest.TestCase):
         itemNames = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
         
         # Asymmetric Preference Values - easiest case
-        prefValues1 = [0.1, 0.2, 0.3, 0.4]
-        prefValues2 = [0.4, 0.3, 0.2, 0.1]
+        prefValues1 = [0.1, 0.3, 0.6, 1.0]
+        prefValues2 = [1.0, 0.6, 0.3, 0.1]
         
         # Random Preference Values - somewhere inbetween
         # prefValues1 = self.generateRandomPrefValues()
         # prefValues2 = self.generateRandomPrefValues()
-        
-        # Symmetric Preference Values - hardest case
-        # prefValues1 = [0.1, 0.2, 0.3, 0.4]
-        # prefValues2 = [0.1, 0.2, 0.3, 0.4]
         
         for i in range(self.numItems):  # Generate items
             item = f"Item {itemNames[i]}"
