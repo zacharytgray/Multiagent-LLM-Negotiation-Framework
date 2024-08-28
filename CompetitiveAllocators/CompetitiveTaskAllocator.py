@@ -304,14 +304,20 @@ Rules:
 				else: 
 					print("Pass...")
 
-	def startNegotiation(self, numIterations):
+	def startNegotiation(self, numIterations, startingAgent):
 		self.agent1.addToMemoryBuffer('system', self.agent1.systemInstructions)
 		self.agent2.addToMemoryBuffer('system', self.agent2.systemInstructions)
+
+		if startingAgent == self.agent1:
+			currentAgent = self.agent1
+			otherAgent = self.agent2
+		else:
+			currentAgent = self.agent2
+			otherAgent = self.agent1
 		
-		currentInput = f"Hello! I'm {self.agent2.name}. Let's begin the item allocation negotiation. Please start the negotiation process."
-		self.agent2.addToMemoryBuffer('assistant', currentInput)
+		currentInput = f"Hello! I'm {otherAgent.name}. Let's begin the item allocation negotiation. Please start the negotiation process."
+		otherAgent.addToMemoryBuffer('assistant', currentInput)
 	
-		currentAgent = self.agent1
 		consensusReached = False
 
 		while not consensusReached:

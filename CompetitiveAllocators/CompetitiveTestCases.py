@@ -121,7 +121,11 @@ class TestAgent(unittest.TestCase):
             items.append(compTA.Item(item, pref1, pref2))
             
         domain = compTA.Domain(items, model)
-        domain.startNegotiation(numIterations)
+
+        #Alternate starting agent
+        startingAgent = domain.agent1 if round_num % 2 == 1 else domain.agent2
+        domain.startNegotiation(numIterations, startingAgent)
+
         agent1items = domain.boardState.getItems(domain.agent1.name)  # formatted as [('item X', prefSum1, prefSum2), ...]
         agent2items = domain.boardState.getItems(domain.agent2.name)
         
@@ -252,8 +256,8 @@ def add_test_methods(numRounds, numitems, numIterations, distanceFromOptimalCeil
         f.write(f"\nAverage Total Distance from Optimal: {round(totalAllocationScore/numRounds)}% away from the optimal.")
         f.write("\n")
         
-        f.write(f"\nAgent 1 Wins: {agent1Name} won {agent1Wins} of {numRounds} ({round(agent1Wins / numRounds)})% rounds")
-        f.write(f"\nAgent 2 Wins: {agent2Name} won {agent2Wins} of {numRounds} ({round(agent2Wins / numRounds)})% rounds")
+        f.write(f"\nAgent 1 Wins: {agent1Name} won {agent1Wins} of {numRounds} ({100*(round(agent1Wins / numRounds))}%) rounds")
+        f.write(f"\nAgent 2 Wins: {agent2Name} won {agent2Wins} of {numRounds} ({100*(round(agent2Wins / numRounds))}%) rounds")
         f.write(f"\nTies: Agents tied in {ties} of {numRounds} ({round(100*(ties / numRounds))}%) rounds")
         f.write(f"\nAverage Agent 1 Allocation Score: {round(agent1ScoreSum / numRounds)}%")
         f.write(f"\nAverage Agent 2 Allocation Score: {round(agent2ScoreSum / numRounds)}%")
