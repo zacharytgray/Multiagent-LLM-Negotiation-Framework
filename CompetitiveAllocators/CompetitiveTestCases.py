@@ -32,20 +32,6 @@ def main():
     f.write(f"LLM Being Used to Allocate items: {model}\n")
     f.close()
     add_test_methods(numRounds, numitems, numIterations, distanceFromOptimalCeiling, logFilename, model)
-    
-    
-    # ta = TestAgent()
-    # ta.setUp(4)
-    # items = [compTA.Item("A", 1, 4), compTA.Item("B", 2, 3), compTA.Item("C", 3, 2), compTA.Item("D", 4, 1)]
-    # agent1Items, agent2Items, bestPrefSum = ta.getOptimalAllocation(items)
-    # print("Optimal Allocation:")
-    # print("Agent 1: " + str(agent1Items))
-    # print("Agent 2: " + str(agent2Items))
-    # print("Best Pref Sum: " + str(bestPrefSum))
-    
-    # print("Pref Sum: " + str(ta.calculatePrefSum(agent1Items, agent2Items)))
-    # print("Has Optimal: " + str(ta.hasOptimalAllocation(agent1Items, agent2Items, bestPrefSum)))
-    # print("Total Distance from Optimal: " + str(ta.getTotalDistanceFromOptimal(agent1Items, agent2Items, bestPrefSum)))
 
 class TestAgent(unittest.TestCase):
         
@@ -53,7 +39,6 @@ class TestAgent(unittest.TestCase):
         optimalSolution = []
         bestPrefSum = 0
         n = len(items)
-        half_n = n // 2
 
         # Ensure there are an even number of items
         if n % 2 != 0:
@@ -84,13 +69,13 @@ class TestAgent(unittest.TestCase):
 
     def hasOptimalAllocation(self, agent1items, agent2items, bestPrefSum):
         currPrefSum = self.calculatePrefSum(agent1items, agent2items)
-        return currPrefSum <= bestPrefSum
+        return currPrefSum >= bestPrefSum
 
     def getTotalDistanceFromOptimal(self, agent1items, agent2items, bestprefSum): # The closer to 0, the closer to the optimal allocation
         currprefSum = self.calculatePrefSum(agent1items, agent2items)
         return round(100 * ((abs(currprefSum - bestprefSum)) / bestprefSum))
     
-    def getOneSidedAllocationScore(self, domain, agentName, agentItems, items):
+    def getOneSidedAllocationScore(self, domain, agentName, agentItems, items): # calculates allocation score by summing up the preference values of the items assigned to the agent 
         runningScore = 0
         totalPossible = 0
         if agentName == domain.agent1.name:
@@ -122,12 +107,12 @@ class TestAgent(unittest.TestCase):
         itemNames = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
         
         # Asymmetric Preference Values - easiest case
-        prefValues1 = [0.1, 0.3, 0.6, 1.0]
-        prefValues2 = [1.0, 0.6, 0.3, 0.1]
+        # prefValues1 = [0.1, 0.3, 0.6, 1.0]
+        # prefValues2 = [1.0, 0.6, 0.3, 0.1]
         
-        # Random Preference Values - somewhere inbetween
-        # prefValues1 = self.generateRandomPrefValues()
-        # prefValues2 = self.generateRandomPrefValues()
+        # Random Preference Values
+        prefValues1 = self.generateRandomPrefValues()
+        prefValues2 = self.generateRandomPrefValues()
         
         for i in range(self.numItems):  # Generate items
             item = f"Item {itemNames[i]}"
@@ -236,7 +221,7 @@ def add_test_methods(numRounds, numitems, numIterations, distanceFromOptimalCeil
 
     for i in range(numRounds):
         startTime = time.time()
-        hasOptimalAllocation, allocationErrorFound, allocationScore, winner, agent1Name, agent1Score, agent2Name, agent2Score = ta.run_round(i+1, numRounds, numIterations, distanceFromOptimalCeiling, logFilename, model)
+        hasOptimalAllocation, exceededDistFromOptimal, allocationScore, winner, agent1Name, agent1Score, agent2Name, agent2Score = ta.run_round(i+1, numRounds, numIterations, distanceFromOptimalCeiling, logFilename, model)
         if winner == agent1Name:
             agent1Wins += 1
             agent1ScoreSum += agent1Score
@@ -255,21 +240,21 @@ def add_test_methods(numRounds, numitems, numIterations, distanceFromOptimalCeil
         duration = endTime - startTime
         totalTime += duration
         numOptimal += 1 if hasOptimalAllocation else 0
-        numPassing += 1 if not allocationErrorFound else 0
+        numPassing += 1 if not exceededDistFromOptimal else 0
         with open (logFilename, "a") as f:
             f.write(f"Round {i+1} Duration: Completed in {format_seconds(duration)}\n\n")
             f.close()
 
     with open(logFilename, "a") as f:
         f.write(("=" * 25) + f"  TOTAL  " + ("=" * 25) + "\n")
-        f.write(f"\nTotal Optimal Allocations: {numOptimal} of {numRounds} ({round(numOptimal / numRounds)})% rounds were optimal.")
-        f.write(f"\nTotal Passing Allocations: {numPassing} of {numRounds} ({round(numPassing / numRounds)})% rounds were within the allocation test tolerance.")
+        f.write(f"\nTotal Optimal Allocations: {numOptimal} of {numRounds} ({round(100*(numOptimal / numRounds))}%) rounds were optimal.")
+        f.write(f"\nTotal Passing Allocations: {numPassing} of {numRounds} ({round(100*(numPassing / numRounds))}%) rounds were within the allocation test tolerance.")
         f.write(f"\nAverage Total Distance from Optimal: {round(totalAllocationScore/numRounds)}% away from the optimal.")
         f.write("\n")
         
         f.write(f"\nAgent 1 Wins: {agent1Name} won {agent1Wins} of {numRounds} ({round(agent1Wins / numRounds)})% rounds")
         f.write(f"\nAgent 2 Wins: {agent2Name} won {agent2Wins} of {numRounds} ({round(agent2Wins / numRounds)})% rounds")
-        f.write(f"\nTies: Agents tied in {ties} of {numRounds} ({round(ties / numRounds)})% rounds")
+        f.write(f"\nTies: Agents tied in {ties} of {numRounds} ({round(100*(ties / numRounds))}%) rounds")
         f.write(f"\nAverage Agent 1 Allocation Score: {round(agent1ScoreSum / numRounds)}%")
         f.write(f"\nAverage Agent 2 Allocation Score: {round(agent2ScoreSum / numRounds)}%")
         f.write("\n")
