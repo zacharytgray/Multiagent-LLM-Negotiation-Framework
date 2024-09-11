@@ -19,7 +19,7 @@ class Agent:
 		self.numTokensGenerated = 0
 		self.memoryBuffer = []
 		self.model = model
-		self.temperature = 0.1
+		self.temperature = 0.3
 		self.instructionsFilename = systemInstructionsFilename
 		self.systemInstructions = f"Your name is {self.name}. "
 
