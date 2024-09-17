@@ -7,7 +7,7 @@ import itertools
 from datetime import datetime
 
 def main():
-    numRounds = 1 # Number of rounds to be run
+    numRounds = 5 # Number of rounds to be run
     numitems = 4 # Number of items to be assigned per round
     numIterations = 4 # Number of conversation iterations per round
     distanceFromOptimalCeiling = 15 # The maximum percentage away from the optimal allocation that is considered passing
@@ -61,84 +61,55 @@ class TestAgent(unittest.TestCase):
                 optimalSolution = [group1, group2]
 
         return optimalSolution[0], optimalSolution[1], bestPrefSum
+       
+    def isParetoOptimal(self, domain):
+        agent1 = domain.agent1
+        agent2 = domain.agent2
+        agent1items = domain.boardState.getItems(agent1.name)
+        agent2items = domain.boardState.getItems(agent2.name)
+        items = domain.items
+        currentAllocation = (agent1items, agent2items)
+        agent1Score = sum(item.pref1 for item in agent1items)
+        agent2Score = sum(item.pref2 for item in agent2items)
         
-    def getParetoOptimalRanking(self, domain, agentName, items):
-        all_combinations = []
-        all_allocations = []
-        agentItems = []
-        
-        if agentName == domain.agent1.name:
-            agentItems = domain.boardState.getItems(domain.agent1.name)
-        elif agentName == domain.agent2.name:
-            agentItems = domain.boardState.getItems(domain.agent2.name)
-        else:
-            raise ValueError("Agent not found.")
-        
+        # Get all combinations to create the allocations
+        allCombinations = []
         for r in range(0, len(items)):
-            all_combinations.extend(itertools.combinations(items, r))
-            
-            
-        for comb in all_combinations:
+            allCombinations.extend(itertools.combinations(items, r))        
+        
+        # Get all allocations
+        allAllocations = []
+        for comb in allCombinations:
             group1 = comb
             group2 = tuple(item for item in items if item not in group1)
-            
-            # calculate agent X's score for this allocation and add it to all_allocations
-            agentScore = 0
-            if agentName == domain.agent1.name:
-                for item in group1:
-                    agentScore += item.pref1
-            elif agentName == domain.agent2.name:
-                for item in group2:
-                    agentScore += item.pref2
-            else:
-                raise ValueError("Agent not found.")
+            allAllocations.append((group1, group2))
 
-            all_allocations.append((group1, group2, agentScore))
+        # Remove the current allocation from all allocations
+        allAllocations = [
+            allocation for allocation in allAllocations
+            if not (set(allocation[0]) == set(currentAllocation[0]) and set(allocation[1]) == set(currentAllocation[1]))
+        ]
         
-        # code to sort allocations of items in descending (highest to lowest) order of agent's preference values
-        sorted_Allocations = sorted(all_allocations, key=lambda allocation: allocation[2], reverse=True) # formatted as [(group1, group2, agentScore), ...]
-        agentRank = 0
-        for i, allocation in enumerate(sorted_Allocations):
-            hasAllItems = True
-            
-            for item in agentItems:
-                if agentName == domain.agent1.name:
-                    if len(allocation[0]) != len(agentItems):
-                        hasAllItems = False
-                    if item not in allocation[0]:
-                        hasAllItems = False
-                elif agentName == domain.agent2.name:
-                    if len(allocation[1]) != len(agentItems):
-                        hasAllItems = False
-                    if item not in allocation[1]:
-                        hasAllItems = False
+        currentScore1 = sum(item.pref1 for item in currentAllocation[0])
+        currentScore2 = sum(item.pref2 for item in currentAllocation[1])
+        
+        for allocation in allAllocations:
+            score1 = sum(item.pref1 for item in allocation[0])
+            score2 = sum(item.pref2 for item in allocation[1])
+            # (If new allocation can improve the first score without hurting the second score) OR (If new allocation can improve the second score without hurting the first score), then it dominates the current allocation and the current allocation is not Pareto Optimal.
+            if (score1 > currentScore1 and score2 >= currentScore2) or (score2 > currentScore2 and score1 >= currentScore1):
                 
-            if hasAllItems:
-                agentRank = i + 1
-                break
-        if agentRank == 0:
-            raise ValueError("Agent's ranking not found.")
+                print(f"\nNot Pareto Optimal.\n")
+                print("Current Allocation:\n ")
+                print("Agent 1: ", currentAllocation[0])
+                print("Agent 2: ", currentAllocation[1])
+                print("\nWinning Allocation:\n ")
+                print("Agent 1: ", allocation[0])
+                print("Agent 2: ", allocation[1])
+                
+                return False, agent1Score, agent2Score
         
-        current_allocation = sorted_Allocations[agentRank - 1]
-        current_score_X = current_allocation[2] # current agent X's score
-        current_score_Y = sum(item.pref2 for item in current_allocation[1]) if agentName == domain.agent1.name else sum(item.pref1 for item in current_allocation[0]) # current agent Y's score
-        
-        if agentRank > 1:
-            #	For the allocations that are better than the current allocation, see if any of them can increase agent X’s score without decreasing agent Y’s score. 
-            #	    If one exists, then you do not have the Pareto optimal. 
-            #	    If no such allocation exists, you’ve found the pareto optimal.
-            #	Report the ranking of the allocation as well as Agent X’s score.
-
-            for allocation in sorted_Allocations[:agentRank - 1]: # check all allocations better than the current one
-                score_X = allocation[2]
-                score_Y = sum(item.pref2 for item in allocation[1]) if agentName == domain.agent1.name else sum(item.pref1 for item in allocation[0])
-
-                if score_X > current_score_X and score_Y >= current_score_Y:
-                    return agentRank, current_score_X, False  # Not Pareto optimal
-            
-        
-        return agentRank, current_score_X, True  # Pareto optimal
-        
+        return True, agent1Score, agent2Score
     
     def calculatePrefSum(self, agent1items, agent2items):
         p1 = sum(item.pref1 for item in agent1items)
@@ -152,22 +123,7 @@ class TestAgent(unittest.TestCase):
     def getTotalDistanceFromOptimal(self, agent1items, agent2items, bestprefSum): # The closer to 0, the closer to the optimal allocation
         currprefSum = self.calculatePrefSum(agent1items, agent2items)
         return round(100 * ((abs(currprefSum - bestprefSum)) / bestprefSum))
-    
-    def getOneSidedAllocationScore(self, domain, agentName, agentItems, items): # calculates allocation score by summing up the preference values of the items assigned to the agent 
-        runningScore = 0
-        totalPossible = 0
-        if agentName == domain.agent1.name:
-            for item in items:
-                totalPossible += item.pref1
-            for item in agentItems:
-                runningScore += item.pref1
-        elif agentName == domain.agent2.name:
-            for item in items:
-                totalPossible += item.pref2
-            for item in agentItems:
-                runningScore += item.pref2
-        return round(100 * (runningScore / totalPossible))
-        
+
 
     def setUp(self, numItems):
         self.numItems = numItems  # number of items to be assigned
@@ -218,18 +174,17 @@ class TestAgent(unittest.TestCase):
 
         f = open(logFilename, "a")
         optimalAllocation1, optimalAllocation2, bestprefSum = self.getOptimalAllocation(items)
-        agent1Rank, agent1Score, hasParetoOptimal1 = self.getParetoOptimalRanking(domain, domain.agent1.name, items)
-        agent2Rank, agent2Score, hasParetoOptimal2 = self.getParetoOptimalRanking(domain, domain.agent2.name, items)
-    
-
         totalDistanceFromOptimal = self.getTotalDistanceFromOptimal(agent1items, agent2items, bestprefSum)
-        # agent1AllocationScore = self.getOneSidedAllocationScore(domain, domain.agent1.name, agent1items, items)
-        # agent2AllocationScore = self.getOneSidedAllocationScore(domain, domain.agent2.name, agent2items, items)
-        
-        f.write(f"\nAgent 1 Pareto Optimal Ranking: {agent1Rank} with a total preference value score of {agent1Score:.2f}. \n       Is Pareto Optimal: {hasParetoOptimal1}\n")
-        f.write(f"\nAgent 2 Pareto Optimal Ranking: {agent2Rank} with a total preference value score of {agent2Score:.2f}. \n       Is Pareto Optimal: {hasParetoOptimal2}\n")
-        print(f"\nAgent 1 Pareto Optimal Ranking: {agent1Rank} with a total preference value score of {agent1Score:.2f}. \n         Is Pareto Optimal: {hasParetoOptimal1}")
-        print(f"Agent 2 Pareto Optimal Ranking: {agent2Rank} with a total preference value score of {agent2Score:.2f}. \n       Is Pareto Optimal: {hasParetoOptimal2}")
+
+        hasParetoOptimal, agent1Score, agent2Score = self.isParetoOptimal(domain)
+
+        f.write(f"Is Pareto Optimal: {hasParetoOptimal}\n")
+            
+        if hasParetoOptimal:
+            print(f"{Fore.GREEN}Is Pareto Optimal{Fore.RESET}\n")
+        else:
+            print(f"{Fore.RED}Is Not Pareto Optimal{Fore.RESET}\n")
+        print(f"Is Pareto Optimal: {hasParetoOptimal}")
         
         if totalDistanceFromOptimal < distanceFromOptimalCeiling:
             f.write(f"\nTotal Distance from Optimal (PASSING): {totalDistanceFromOptimal}% away from the optimal.\n")
@@ -254,7 +209,7 @@ class TestAgent(unittest.TestCase):
         f.write(f"\nNumber of tokens generated by {domain.agent2.name}: {domain.agent2.numTokensGenerated}\n")
         f.close()
         
-        return items, hasOptimalAllocation, exceededDistFromOptimal, totalDistanceFromOptimal, agent1Rank, agent1Score, hasParetoOptimal1, agent2Rank, agent2Score, hasParetoOptimal2
+        return items, hasOptimalAllocation, exceededDistFromOptimal, totalDistanceFromOptimal, hasParetoOptimal, agent1Score, agent2Score
     
     def generateRandomPrefValues(self): # Generate random prefValues between 0 and 1
         prefValues = []
@@ -281,12 +236,9 @@ def add_test_methods(numRounds, numitems, numIterations, distanceFromOptimalCeil
     numOptimal = 0
     numPassing = 0
     
-    agent1RankSum = 0 # the rank of the items assigned to agent 1
     agent1ScoreSum = 0 # the percentage of the total preference value score of the items assigned to agent 1
-    agent2RankSum = 0 # the rank of the items assigned to agent 2
     agent2ScoreSum = 0 # the percentage of the total preference value score of the items assigned to agent 2
-    numParetoOptimalAgent1 = 0
-    numParetoOptimalAgent2 = 0
+    numParetoOptimal = 0
     
     totalAllocationScore = 0
     ta = TestAgent()
@@ -295,22 +247,17 @@ def add_test_methods(numRounds, numitems, numIterations, distanceFromOptimalCeil
 
     for i in range(numRounds):
         startTime = time.time()
-        items, hasOptimalAllocation, exceededDistFromOptimal, allocationScore, agent1Rank, agent1Score, hasParetoOptimal1, agent2Rank, agent2Score, hasParetoOptimal2 = ta.run_round(i+1, numRounds, numIterations, distanceFromOptimalCeiling, logFilename, model)
-        if hasParetoOptimal1:
-            numParetoOptimalAgent1 += 1
-        if hasParetoOptimal2:
-            numParetoOptimalAgent2 += 1
-            
+        items, hasOptimalAllocation, exceededDistFromOptimal, allocationScore, hasParetoOptimal, agent1Score, agent2Score = ta.run_round(i+1, numRounds, numIterations, distanceFromOptimalCeiling, logFilename, model)
+        if hasParetoOptimal:
+            numParetoOptimal += 1
+
         agent1MaxPointsPossible = 0
         agent2MaxPointsPossible = 0
         for item in items:
             agent1MaxPointsPossible += item.pref1
             agent2MaxPointsPossible += item.pref2
         agent1ScoreSum += (agent1Score / agent1MaxPointsPossible) * 100
-        agent1RankSum += agent1Rank
         agent2ScoreSum += (agent2Score / agent2MaxPointsPossible) * 100
-        agent2RankSum += agent2Rank
-            
             
         totalAllocationScore += allocationScore
         endTime = time.time()
@@ -331,15 +278,11 @@ def add_test_methods(numRounds, numitems, numIterations, distanceFromOptimalCeil
         f.write("\n")
         
         f.write("\nCOMPETITIVE CRITERIA:\n")
-        f.write(f"\nAverage Agent 1 Pareto Optimal Ranking: {(agent1RankSum / numRounds)}")
-        f.write(f"\nAverage Agent 2 Pareto Optimal Ranking: {(agent2RankSum / numRounds)}")
-        f.write("\n")
-        f.write("\nAgent 1 Pareto Optimal Allocations: " + str(numParetoOptimalAgent1) + " of " + str(numRounds) + " rounds.")
-        f.write("\nAgent 2 Pareto Optimal Allocations: " + str(numParetoOptimalAgent2) + " of " + str(numRounds) + " rounds.")
+        f.write("\nNumber of Pareto Optimal Allocations: " + str(numParetoOptimal) + " of " + str(numRounds) + " rounds.")
         f.write("\n")
         f.write(f"\nAverage Agent 1 Allocation Score: {(agent1ScoreSum / numRounds)}%")
         f.write(f"\nAverage Agent 2 Allocation Score: {(agent2ScoreSum / numRounds)}%")
-        f.write("\nNote: The Allocation Score is, for each round, the sum of an agent's preference values out of the sum of all possible preference values for that agent.")
+        f.write("\n     Note: The Allocation Score for each round is the sum of an agent's preference values out of the sum of all possible preference values for that agent.")
         f.write("\n")
         
         f.write(f"\nTotal Time (hh:mm:ss): {format_seconds(totalTime)}")
