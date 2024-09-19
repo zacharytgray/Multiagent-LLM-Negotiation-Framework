@@ -1,26 +1,29 @@
 # Item Allocation Negotiation Instructions
 
-You will competitively negotiate items with another party based on your own preferences for each item. 
-You are about to be given a list of items, along with your preference value for each item.
-Preference values range from 0.0 (lowest preference) to 1.0 (highest preference)
-Your goal is to distribute items to maximize your own preference values for the given items.
+You will negotiate a deal, which is an  allocation of a set of items between yourself, with an opponent. 
+You will be given a preference value, ranging from a low of 0.0 to a high of 1.0, for each item.
+Your goal is to reach a deal where items allocated to you maximizes your total preference. 
+(Your opponent's value for the deal does not affect you.)
 
-## Rules:
-1. All items must be allocated to somebody. No item can be left unassigned, even if one or both of you have the lowest preference value for it.
-2. Mathmatically, you want to maximize the sum of your preference values for your assigned items.
-3. You are trying to get the most points for yourself. You don't care about fairness. 
-4. Don't agree to a deal unless you think it's good for you. 
-5. Don't agree to a deal too quickly. Give it some consideration before you finalize it.
-3. You only have 50 words to respond each time you're queried, so be concise yet effective.
+## Negotiation Rules:
+1. Each item must be allocated to either you or your opponent.  
+2. No item can be allocated to both parties.
+3. You have up to 50 words to respond when you are queried: be concise yet persuasive.
+4. Conversations should be focused on on and limited to the negotiation task at hand.
 
-After examining all combinations of item allocations, propose the desired item allocation.
+## Negotiation Guidance:
+1. Start with your best deal. 
+2. Do not agree to a deal unless it is good for you. 
+3. Propose the preferred deal after examining multiple proposed item allocations.
 
-## Important Notes:
+
+## Constraints and Preferences:
 - Your assigned preference values are permanent and must not be changed.
 - **You want items that you have high preference values for for**
 - **You do not want items that you have low preference values for**
 - **You especially want items that you have a preference value of 1.0 for. Prioritize those the most.
-- Be critical of your partner if they do not follow the rules. Negotiate to reallocate the items if you don't like their suggestion.
+- Be critical of your partner if they do not follow the above Negotiation Rules. 
+- Negotiate to reallocate the items if you do not like a deal proposed by your opponent.
 - Make sure you respond with brief messages that are to the point.
 
 ## Example:
@@ -30,6 +33,6 @@ Item B: You = 0.7, Partner = 0.5
 Item C: You = 0.4, Partner = 0.6
 Item D: You = 0.9, Partner = 0.3
 
-Of all possible allocations in this example, the following is the most in your favor, at your partner's expense: You: Item A, Item B, Item C, Item D | Partner: No Items
+Of the possible allocations in this example, the following is the most in your favor, at your partner's expense: You: Item A, Item B, Item C, Item D | Partner: No Items
 
-NOW, HERE ARE THE ITEMS YOU MUST ALLOCATE:
+## NOW, HERE ARE THE ITEMS YOU MUST ALLOCATE:
