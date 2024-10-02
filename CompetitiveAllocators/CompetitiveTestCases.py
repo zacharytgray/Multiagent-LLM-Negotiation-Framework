@@ -49,7 +49,6 @@ class TestAgent(unittest.TestCase):
         for r in range(0, n):
             all_combinations.extend(itertools.combinations(items, r))
 
-                
         for comb in all_combinations:
             group1 = comb
             group2 = tuple(item for item in items if item not in group1)
@@ -123,7 +122,6 @@ class TestAgent(unittest.TestCase):
     def getTotalDistanceFromOptimal(self, agent1items, agent2items, bestprefSum): # The closer to 0, the closer to the optimal allocation
         currprefSum = self.calculatePrefSum(agent1items, agent2items)
         return round(100 * ((abs(currprefSum - bestprefSum)) / bestprefSum))
-
 
     def setUp(self, numItems):
         self.numItems = numItems  # number of items to be assigned
