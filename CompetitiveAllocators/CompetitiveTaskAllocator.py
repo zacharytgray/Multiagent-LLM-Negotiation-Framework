@@ -105,39 +105,52 @@ class Item:
         return f"{self.name} ({self.pref1}, {self.pref2})"
         
 class BoardState:
-	def __init__(self, agent1: Agent, agent2: Agent, items: list[Item]):
-		self.agent1 = agent1
-		self.agent2 = agent2
-		self.items = [item for item in items]
+    def __init__(self, agent1: Agent, agent2: Agent, items: list[Item]):
+        self.agent1 = agent1
+        self.agent2 = agent2
+        self.items = [item for item in items]
   
-		self.board = {
-			f"{agent1.name}": [Item],
-			"unassigned": items,
-			f"{agent2.name}": [Item]
-		}
+        self.board = {
+            f"{agent1.name}": [],
+            "unassigned": items,
+            f"{agent2.name}": []
+        }
     
-	def getItems(self, row: str): # row is either agent1.name, agent2.name, or unassigned
-		return self.board[row]
+    def getItems(self, row: str): # row is either agent1.name, agent2.name, or unassigned
+        return self.board[row]
 
-	def resetItems(self):
-		self.board[self.agent1.name] = []
-		self.board[self.agent2.name] = []
-		self.board["unassigned"] = []
-		for item in self.items:
-			self.board["unassigned"].append(item)
+    def resetItems(self):
+        self.board[self.agent1.name] = []
+        self.board[self.agent2.name] = []
+        self.board["unassigned"] = []
+        for item in self.items:
+            self.board["unassigned"].append(item)
 
-	def addItem(self, item: Item, row):
-		if item not in self.board[row]:
-			if item in self.items and item not in self.board[row]:
-				self.board[row].append(item)
-				self.board["unassigned"].remove(item)
-			else:
-				print(f"Error: {item} not in item list.")
-		else:
-			print(f"Error: {item} already in {row} item list.")
+    def addItem(self, item: Item, row):
+        if item not in self.board[row]:
+            if item in self.items and item not in self.board[row]:
+                self.board[row].append(item)
+                self.board["unassigned"].remove(item)
+            else:
+                print(f"Error: {item} not in item list.")
+        else:
+            print(f"Error: {item} already in {row} item list.")
    
-		return item
-		
+        return item
+    
+    def assignItems(self, agentName, itemNames):
+        for itemName in itemNames:
+            itemIndex = self.getItemIndex(itemName)
+            if itemIndex is not None:
+                self.addItem(self.items[itemIndex], agentName)
+            else:
+                print(f"Error: Item {itemName} not found.")
+        
+    def getItemIndex(self, itemName):
+        for i in range(len(self.items)):
+            if self.items[i].name.lower().strip() == itemName.lower().strip():
+                return i
+        return None
 	
 class Domain:
 	def __init__(self, items: list[Item], model: str) -> None:
