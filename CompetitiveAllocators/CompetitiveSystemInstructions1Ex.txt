@@ -9,7 +9,7 @@ Your goal is to reach a deal where items allocated to you maximizes your total p
 1. Each item must be allocated to either you or your opponent.  
 2. No item can be allocated to both parties.
 3. You have up to 50 words to respond when you are queried: be concise yet persuasive.
-4. Conversations should be focused on on and limited to the negotiation task at hand.
+4. Conversations should be focused on and limited to the negotiation task at hand.
 
 ## Negotiation Guidance:
 1. Start with your best deal. 

@@ -154,7 +154,7 @@ class BoardState:
 	
 class Domain:
 	def __init__(self, items: list[Item], model: str) -> None:
-		filePath = "CompetitiveAllocators/CompetitiveSystemInstructions1Ex.txt"
+		filePath = "CompetitiveAllocators/CompetitiveSystemInstructionsHybrid.txt"
 		self.agent1 = Agent("Agent 1", model, filePath)
 		self.agent2 = Agent("Agent 2", model, filePath)
 		self.moderatorAgent = Agent("Moderator", model, "")
