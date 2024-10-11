@@ -1,7 +1,16 @@
+import os
 import ast
 import ollama
 from colorama import Fore
 import concurrent.futures
+from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv("/Users/zacharytgray/Documents/GitHub/Ollama-LLM-Sandbox/keys.env")
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if openai_api_key is None:
+	print("API key for OpenAI not found.")
+client = OpenAI(api_key=openai_api_key)
 
 def logAssignedItems(fileName, boardState):
     agent1Name = boardState.agent1.name
@@ -14,7 +23,7 @@ def logAssignedItems(fileName, boardState):
     f.close()
 
 class Agent:
-	def __init__(self, name, model, systemInstructionsFilename) -> None:
+	def __init__(self, name, model, systemInstructionsFilename, useOpenAI) -> None:
 		self.name = name
 		self.numTokensGenerated = 0
 		self.memoryBuffer = []
@@ -22,6 +31,7 @@ class Agent:
 		self.temperature = 0.3
 		self.instructionsFilename = systemInstructionsFilename
 		self.systemInstructions = f"Your name is {self.name}. "
+		self.useOpenAI = useOpenAI
 
 		if systemInstructionsFilename != "":
 			try:
@@ -43,6 +53,12 @@ class Agent:
 				raise ValueError(f"Invalid message role: {message}")
 
 	def queryModel(self):
+		if self.useOpenAI:
+			return self.queryOpenAIModel()
+		else:
+			return self.queryLocalModel()
+
+	def queryLocalModel(self):
 		def model_query():
 			self.validateMessages(self.memoryBuffer)  # Validate messages
 			response = ollama.chat(model=self.model, messages=self.memoryBuffer, options = {'temperature': self.temperature, 'num_predict': 100},)
@@ -51,7 +67,24 @@ class Agent:
 		with concurrent.futures.ThreadPoolExecutor() as executor:
 			future = executor.submit(model_query)
 			try:
-				numMinutesTimeout = 8 # minutes
+				return future.result(timeout=300)  # 5 minutes timeout
+			except concurrent.futures.TimeoutError:
+				print(f"{Fore.RED}Error: Timeout in model query.{Fore.RESET}")
+				return "TIMEOUTERROR"
+
+	def queryOpenAIModel(self):
+		def model_query():
+			response = client.chat.completions.create(
+			model=self.model,
+			messages=self.memoryBuffer
+			)
+			self.numTokensGenerated += response.usage.total_tokens
+			return response.choices[0].message.content
+
+		with concurrent.futures.ThreadPoolExecutor() as executor:
+			future = executor.submit(model_query)
+			try:
+				numMinutesTimeout = 5 # minutes
 				return future.result(timeout = (60 * numMinutesTimeout))
 			except concurrent.futures.TimeoutError:
 				print(f"{Fore.RED}Error: Timeout in model query.{Fore.RESET}")
@@ -153,11 +186,11 @@ class BoardState:
         return None
 	
 class Domain:
-	def __init__(self, items: list[Item], model: str) -> None:
-		filePath = "CompetitiveAllocators/CompetitiveSystemInstructionsHybrid.txt"
-		self.agent1 = Agent("Agent 1", model, filePath)
-		self.agent2 = Agent("Agent 2", model, filePath)
-		self.moderatorAgent = Agent("Moderator", model, "")
+	def __init__(self, items: list[Item], model: str, useOpenAI: bool) -> None:
+		filePath = "CompetitiveAllocators/CompetitiveSystemInstructions1Ex.txt"
+		self.agent1 = Agent("Agent 1", model, filePath, useOpenAI)
+		self.agent2 = Agent("Agent 2", model, filePath, useOpenAI)
+		self.moderatorAgent = Agent("Moderator", model, "", useOpenAI)
 		self.items: list[Item] = items
 		self.numItems = len(items)
 		self.numConversationIterations = 0
