@@ -195,6 +195,7 @@ class Domain:
 		self.numItems = len(items)
 		self.numConversationIterations = 0
 		self.boardState = BoardState(self.agent1, self.agent2, items)
+		self.consensusCounter = 0
   
 		for item in self.items:
 			self.agent1.systemInstructions +=  f"\n- {item.name}: {self.agent1.name}, Your preference value for this item is {item.pref1} out of 1.0"
@@ -210,9 +211,30 @@ class Domain:
 		return
 
 	def getConsensus(self, boardState):
+		self.consensusCounter+= 1
 		boardState.resetItems()
 		self.moderatorAgent.memoryBuffer = []
-		self.moderatorAgent.systemInstructions = f"""
+
+		if self.consensusCounter > 3:
+			self.moderatorAgent.systemInstructions = f""" 
+You have just received a conversation between {self.agent1.name} and {self.agent2.name}. You are the moderator for this item allocation negotiation.
+These two partners have been asked to allocate {self.numItems} items between each other based on their own preferences for each item.
+Rules:
+- You are not going to change their decisions in any way. 
+- Your job is to simply show me the results of their conversation in a dictionary format: {{'Item A':'AGENT NAME', 'Item B':'AGENT NAME', ...}}
+- Return the results that they seem to agree on the most. If they do not agree on an item, make your best guess on the item assignment based on their conversation.
+- Note that collaboration or splitting an item is strictly forbidden. If they want to collaborate on a task, make an educated guess as to who gets the item.
+- Note that 'AGENT NAME' is a placeholder for the name of the agent you think should be assigned that item based on their conversation. It should be replaced with '{self.agent1.name}' or '{self.agent2.name}'.
+- Include apostrophes as shown around the item names and agent names to ensure the dictionary is formatted correctly.
+- To ensure your message is a valid dictionary, make sure your response starts with an open curly bracket and ends with a curly bracket. 
+- Do not inculde leading or trailing apostrophes. 
+- Do not inclue any headers like 'python' or 'json'.
+- Do not respond with any extra text, not even an introduction. Simply return the following, replacing 'AGENT NAME' as needed:
+   
+
+"""
+		else:
+			self.moderatorAgent.systemInstructions = f"""
 You have just received a conversation between {self.agent1.name} and {self.agent2.name}. You are the moderator for this item allocation negotiation.
 These two partners have been asked to allocate {self.numItems} items between each other based on their own preferences for each item.
 Rules:
