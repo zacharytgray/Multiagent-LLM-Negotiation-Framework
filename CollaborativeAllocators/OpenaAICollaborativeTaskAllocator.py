@@ -146,6 +146,7 @@ class Agent:
 	
 class Domain:
 	def __init__(self, agent1, agent2, tasks) -> None:
+		self.consensusCounter = 0
 		self.agent1 = agent1
 		self.agent2 = agent2
 		self.moderatorAgent = Agent("Moderator")
@@ -160,10 +161,29 @@ class Domain:
 		agent2.systemInstructions += "\n\nLet's begin! Remember to be concise. Under no curcumstances should you accept an allocation with a lower Overall PSR than the highest one found, unless it causes one agent to have more tasks than the other."
   
 	def getConsensus(self):
+		self.consensusCounter += 1
 		self.agent1.assignedTasks = []
 		self.agent2.assignedTasks = []
 		self.moderatorAgent.memoryBuffer = []
-		self.moderatorAgent.systemInstructions = f"""
+		if self.consensusCounter > 3:
+			self.moderatorAgent.systemInstructions = f"""
+You have just received a conversation between {self.agent1.name} and {self.agent2.name}. You are the moderator for this task allocation conversation.
+These two partners have been asked to allocate {len(self.tasks)} tasks between each other based on their own Probability of Success Rates (PSRs) for each task.
+Rules:
+- You are not going to change their decisions in any way. 
+- Your job is to simply show me the results of their conversation in a dictionary format: {{'Task A':'AGENT NAME', 'Task B':'AGENT NAME', ...}}
+- The allocation you should return is the one that yielded the highest Overall PSR from what they discussed.
+- Note that 'AGENT NAME' is a placeholder for the name of the agent you think should be assigned that task based on their conversation. It should be replaced with '{self.agent1.name}' or '{self.agent2.name}'
+- If they have not come to a consensus on a task, use your best judgement to select {self.agent1.name} or {self.agent2.name} for that task based on their conversation.
+- Include apostrophes as shown around the task names and agent names to ensure the dictionary is formatted correctly.
+- To ensure your message is a valid dictionary, make sure your response starts with an open curly bracket and ends with a curly bracket. 
+- Do not inculde leading or trailing apostrophes. 
+- Do not inclue any headers like 'python' or 'json'.
+- Do not respond with any extra text, not even an introduction. Simply return the following, replacing 'AGENT NAME' as needed:
+
+"""
+		else:
+			self.moderatorAgent.systemInstructions = f"""
 You have just received a conversation between {self.agent1.name} and {self.agent2.name}. You are the moderator for this task allocation conversation.
 These two partners have been asked to allocate {len(self.tasks)} tasks between each other based on their own Probability of Success Rates (PSRs) for each task.
 Rules:

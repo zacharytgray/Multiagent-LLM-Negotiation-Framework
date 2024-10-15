@@ -7,9 +7,9 @@ import itertools
 from datetime import datetime
 
 def main():
-    numRounds = 1 # Number of rounds to be run
-    numTasks = 4 # Number of tasks to be assigned per round
-    numIterations = 4 # Number of conversation iterations per round
+    numRounds = 100 # Number of rounds to be run
+    numTasks = 8 # Number of tasks to be assigned per round
+    numIterations = 6 # Number of conversation iterations per round
     allocationScoreCeiling = 15 # The maximum percentage away from the optimal allocation that is considered passing
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

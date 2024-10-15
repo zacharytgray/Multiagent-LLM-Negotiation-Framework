@@ -1,26 +1,26 @@
 import unittest
 import random
 from colorama import Fore
-import CompetitiveTaskAllocator as compTA
+import CompetitiveVersusTaskAllocator as compTA
 import time
 import itertools
 from datetime import datetime
 
 def main():
     numRounds = 100 # Number of rounds to be run
-    numitems = 8 # Number of items to be assigned per round
-    numIterations = 6 # Number of conversation iterations per round
+    numitems = 4 # Number of items to be assigned per round
+    numIterations = 4 # Number of conversation iterations per round
     distanceFromOptimalCeiling = 15 # The maximum percentage away from the optimal allocation that is considered passing
-    model = 'gemma2:latest' # The LLM model to be used for allocation
-    # try o1-preview or o1-mini also
-    useOpenAI = False # Toggle to switch between local LLM and OpenAI LLM
+    agent1Model = 'gemma2:latest' # The LLM model to be used for allocation for agent 1
+    agent2Model = 'gpt-4o' # The LLM model to be used for allocation for agent 2
     
     print("\n" + ("=" * 25) + f"  COMPETITIVE ITEM ALLOCATION TEST  " + ("=" * 25) + "\n")
     print(f"Number of Items to Allocate: {numitems}")
     print(f"Number of Rounds: {numRounds}")
     print(f"Default Number of Conversation Iterations Per Round: {numIterations}")
     print(f"Total Distance from Optimal Ceiling: Allocations must be less than {distanceFromOptimalCeiling}% away from the optimal solution")
-    print(f"LLM Being Used to Allocate items: {model}\n")
+    print(f"Agent 1 LLM Being Used to Allocate items: {agent1Model}\n")
+    print(f"Agent 2 LLM Being Used to Allocate items: {agent2Model}\n")
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     logFilename = f"log_CompTA_{timestamp}.txt"
@@ -31,9 +31,10 @@ def main():
     f.write(f"Number of Rounds: {numRounds}\n")
     f.write(f"Default Number of Conversation Iterations Per Round: {numIterations}\n")
     f.write(f"Total Distance from Optimal Ceiling: Allocations must be less than {distanceFromOptimalCeiling}% away from the optimal solution\n")
-    f.write(f"LLM Being Used to Allocate items: {model}\n")
+    f.write(f"Agent 1 LLM Being Used to Allocate items: {agent1Model}\n")
+    f.write(f"Agent 2 LLM Being Used to Allocate items: {agent2Model}\n")
     f.close()
-    add_test_methods(numRounds, numitems, numIterations, distanceFromOptimalCeiling, logFilename, model, useOpenAI)
+    add_test_methods(numRounds, numitems, numIterations, distanceFromOptimalCeiling, logFilename, agent1Model, agent2Model)
 
 class TestAgent(unittest.TestCase):
         
@@ -130,7 +131,7 @@ class TestAgent(unittest.TestCase):
     def setUp(self, numItems):
         self.numItems = numItems  # number of items to be assigned
 
-    def run_round(self, round_num, numRounds, numIterations, distanceFromOptimalCeiling, logFilename, model, useOpenAI):
+    def run_round(self, round_num, numRounds, numIterations, distanceFromOptimalCeiling, logFilename, agent1Model, agent2Model):
         exceededDistFromOptimal = False
 
         print("\n" + ("~" * 25) + f"  ROUND {round_num} OF {numRounds}  " + ("~" * 25) + "\n")
@@ -156,7 +157,7 @@ class TestAgent(unittest.TestCase):
             pref2 = prefValues2[i]
             items.append(compTA.Item(item, pref1, pref2))
             
-        domain = compTA.Domain(items, model, useOpenAI)
+        domain = compTA.Domain(items, agent1Model, agent2Model)
 
         #Alternate starting agent
         startingAgent = domain.agent1 if round_num % 2 == 1 else domain.agent2
@@ -234,7 +235,7 @@ def format_seconds(seconds):
     
     return formatted_time
 
-def add_test_methods(numRounds, numitems, numIterations, distanceFromOptimalCeiling, logFilename, model, useOpenAI):
+def add_test_methods(numRounds, numitems, numIterations, distanceFromOptimalCeiling, logFilename, agent1Model, agent2Model):
     numOptimal = 0
     numPassing = 0
     
@@ -249,7 +250,7 @@ def add_test_methods(numRounds, numitems, numIterations, distanceFromOptimalCeil
 
     for i in range(numRounds):
         startTime = time.time()
-        items, hasOptimalAllocation, exceededDistFromOptimal, allocationScore, hasParetoOptimal, agent1Score, agent2Score = ta.run_round(i+1, numRounds, numIterations, distanceFromOptimalCeiling, logFilename, model, useOpenAI)
+        items, hasOptimalAllocation, exceededDistFromOptimal, allocationScore, hasParetoOptimal, agent1Score, agent2Score = ta.run_round(i+1, numRounds, numIterations, distanceFromOptimalCeiling, logFilename, agent1Model, agent2Model)
         if hasParetoOptimal:
             numParetoOptimal += 1
 
