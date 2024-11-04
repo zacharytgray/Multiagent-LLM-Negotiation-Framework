@@ -3,130 +3,72 @@ import ast
 import ollama
 from colorama import Fore
 import concurrent.futures
-from openai import OpenAI
 from dotenv import load_dotenv
+from langchain.prompts import ChatPromptTemplate
+from langchain.schema import AIMessage, HumanMessage, SystemMessage
+from langchain_community.chat_models import ChatOpenAI  # Updated import
+from langchain_ollama import ChatOllama  # Updated import
 
 load_dotenv("/Users/zacharytgray/Documents/GitHub/Ollama-LLM-Sandbox/keys.env")
 openai_api_key = os.getenv("OPENAI_API_KEY")
 if openai_api_key is None:
-	print("API key for OpenAI not found.")
-client = OpenAI(api_key=openai_api_key)
+    print("API key for OpenAI not found.")
+client = ChatOpenAI(openai_api_key=openai_api_key)  # Updated initialization
 
 def logAssignedItems(fileName, boardState):
     agent1Name = boardState.agent1.name
     agent2Name = boardState.agent2.name
     agent1Items = boardState.getItems(agent1Name)
     agent2Items = boardState.getItems(agent2Name)
-    f = open(fileName, "a")
-    f.write(f"\n{agent1Name}'s items: {agent1Items}\n")
-    f.write(f"{agent2Name}'s items: {agent2Items}\n")
-    f.close()
+    with open(fileName, "a") as f:
+        f.write(f"\n{agent1Name}'s items: {agent1Items}\n")
+        f.write(f"{agent2Name}'s items: {agent2Items}\n")
 
 class Agent:
-	def __init__(self, name, model, systemInstructionsFilename, useOpenAI) -> None:
-		self.name = name
-		self.numTokensGenerated = 0
-		self.memoryBuffer = []
-		self.model = model
-		self.temperature = 0.3
-		self.instructionsFilename = systemInstructionsFilename
-		self.systemInstructions = f"Your name is {self.name}. "
-		self.useOpenAI = useOpenAI
+    def __init__(self, name, model_name, systemInstructionsFilename, useOpenAI=False):
+        self.name = name
+        self.numTokensGenerated = 0
+        self.memory = []  # Replace ConversationBufferMemory with a simple list
+        self.useOpenAI = useOpenAI
+        self.systemInstructions = f"Your name is {self.name}. "
+        self.instructionsFilename = systemInstructionsFilename
 
-		if systemInstructionsFilename != "":
-			try:
-				with open(self.instructionsFilename, "r") as f:
-					self.systemInstructions += f.read()
-				self.addToMemoryBuffer('system', self.systemInstructions)
-			except FileNotFoundError:
-				print(f"Error: {self.instructionsFilename} not found.")
-				exit(1)
-		
-	def addToMemoryBuffer(self, role, inputText): #role is either 'user', 'assistant', or 'system'
-		self.memoryBuffer.append({'role':role, 'content': inputText})
-  
-	def validateMessages(self, messages):
-		valid_roles = {"system", "user", "assistant"}
-		for message in messages:
-			if "role" not in message or message["role"] not in valid_roles:
-				print(messages)
-				raise ValueError(f"Invalid message role: {message}")
+        if useOpenAI:
+            if openai_api_key is None:
+                print("OpenAI API key is not set.")
+                exit(1)
+            self.model = ChatOpenAI(model_name=model_name, openai_api_key=openai_api_key)  # Updated parameter
+        else:
+            self.model = ChatOllama(model=model_name, base_url="http://localhost:11434")
 
-	def queryModel(self):
-		if self.useOpenAI:
-			return self.queryOpenAIModel()
-		else:
-			return self.queryLocalModel()
+        if systemInstructionsFilename != "":
+            try:
+                with open(self.instructionsFilename, "r") as f:
+                    self.systemInstructions += f.read()
+                self.addToMemoryBuffer('system', self.systemInstructions)
+            except FileNotFoundError:
+                print(f"Error: {self.instructionsFilename} not found.")
+                exit(1)
 
-	def queryLocalModel(self):
-		def model_query():
-			self.validateMessages(self.memoryBuffer)  # Validate messages
-			response = ollama.chat(model=self.model, messages=self.memoryBuffer, options = {'temperature': self.temperature, 'num_predict': 100},)
-			self.numTokensGenerated += response['eval_count']
-			return response['message']['content'].strip()
-		with concurrent.futures.ThreadPoolExecutor() as executor:
-			future = executor.submit(model_query)
-			try:
-				return future.result(timeout=300)  # 5 minutes timeout
-			except concurrent.futures.TimeoutError:
-				print(f"{Fore.RED}Error: Timeout in model query.{Fore.RESET}")
-				return "TIMEOUTERROR"
+    def addToMemoryBuffer(self, role, content):
+        if role == 'system':
+            self.memory.append(SystemMessage(content=content))
+        elif role == 'user':
+            self.memory.append(HumanMessage(content=content))
+        elif role == 'assistant':
+            self.memory.append(AIMessage(content=content))
+        else:
+            raise ValueError(f"Unknown role: {role}")
 
-	def queryOpenAIModel(self):
-		def model_query():
-			response = client.chat.completions.create(
-			model=self.model,
-			messages=self.memoryBuffer
-			)
-			self.numTokensGenerated += response.usage.total_tokens
-			return response.choices[0].message.content
-
-		with concurrent.futures.ThreadPoolExecutor() as executor:
-			future = executor.submit(model_query)
-			try:
-				numMinutesTimeout = 5 # minutes
-				return future.result(timeout = (60 * numMinutesTimeout))
-			except concurrent.futures.TimeoutError:
-				print(f"{Fore.RED}Error: Timeout in model query.{Fore.RESET}")
-				return "TIMEOUTERROR"
-		
-	def run(self, role, inputText):
-		self.addToMemoryBuffer(role, inputText)
-		timeoutStr = "You took too long to respond. Please try again, avoiding any infinite loops."
-      			
-		withinTimeLimit = False
-		hasResponse = False
-		while not withinTimeLimit or not hasResponse:
-			withinTimeLimit = False
-			hasResponse = False
-			response = self.queryModel()
-   
-			if response:
-				hasResponse = True
-			else:
-				print(f"{Fore.RED}Error: No response from {self.name}.{Fore.RESET}")
-    
-			if response == "TIMEOUTERROR":
-				print(f"{Fore.RED}Timeout: {self.name} took too long to respond. Trying again.{Fore.RESET}")
-				self.addToMemoryBuffer('user', timeoutStr)
-			else:
-				withinTimeLimit = True
-				self.addToMemoryBuffer('assistant', response)
-    
-		return response.strip()
-	
-	def printMemoryBuffer(self):
-		print(f"\n{Fore.YELLOW}{self.name}'s Memory Buffer:{Fore.RESET}")
-		for dict in self.memoryBuffer:
-			if dict.get('role') == 'system':
-				print(Fore.RED + "System: " + dict.get('content') + Fore.RESET)
-			elif dict.get('role') == 'user':
-				print(Fore.LIGHTBLUE_EX + f"User: " + dict.get('content') + Fore.RESET)
-			elif dict.get('role') == 'assistant':
-				print(Fore.LIGHTGREEN_EX + f"{self.name} (Assistant): " + dict.get('content') + Fore.RESET)
-			else:
-				print(f"{Fore.RED}Error: Invalid role in memory buffer: {dict.get('role')}")
-				print(f"Content: {dict.get('content')}{Fore.RESET}")
+    def run(self, role, inputText):
+        self.addToMemoryBuffer(role, inputText)
+        prompt = ChatPromptTemplate.from_messages(self.memory)
+        chain = prompt | self.model
+        response = chain.invoke({})
+        # Extract the content from the response
+        response_content = response.content if isinstance(response, AIMessage) else response
+        self.addToMemoryBuffer('assistant', response_content)
+        return response_content.strip()
 
 class Item:
     def __init__(self, name, pref1, pref2):
@@ -138,7 +80,7 @@ class Item:
         return f"{self.name} ({self.pref1}, {self.pref2})"
         
 class BoardState:
-    def __init__(self, agent1: Agent, agent2: Agent, items: list[Item]):
+    def __init__(self, agent1: Agent, agent2: Agent, items: list):
         self.agent1 = agent1
         self.agent2 = agent2
         self.items = [item for item in items]
@@ -186,11 +128,11 @@ class BoardState:
         return None
 	
 class Domain:
-	def __init__(self, items: list[Item], model: str, useOpenAI: bool) -> None:
+	def __init__(self, items: list, agent1Model: str, agent2Model: str, moderatorModel: str, agent1UseOpenAI, agent2UseOpenAI, moderatorUseOpenAI):
 		filePath = "CompetitiveAllocators/CompetitiveSystemInstructions1Ex.txt"
-		self.agent1 = Agent("Agent 1", model, filePath, useOpenAI)
-		self.agent2 = Agent("Agent 2", model, filePath, useOpenAI)
-		self.moderatorAgent = Agent("Moderator", model, "", useOpenAI)
+		self.agent1 = Agent("Agent 1", agent1Model, filePath, useOpenAI=agent1UseOpenAI) 
+		self.agent2 = Agent("Agent 2", agent2Model, filePath, useOpenAI=agent2UseOpenAI) 
+		self.moderatorAgent = Agent("Moderator", moderatorModel, "", useOpenAI=moderatorUseOpenAI)
 		self.items: list[Item] = items
 		self.numItems = len(items)
 		self.numConversationIterations = 0
@@ -211,9 +153,9 @@ class Domain:
 		return
 
 	def getConsensus(self, boardState):
-		self.consensusCounter+= 1
+		self.consensusCounter += 1
 		boardState.resetItems()
-		self.moderatorAgent.memoryBuffer = []
+		self.moderatorAgent.memory = []  # Reset moderator's memory
 
 		if self.consensusCounter > 3:
 			self.moderatorAgent.systemInstructions = f""" 
@@ -257,12 +199,12 @@ Rules:
 		self.moderatorAgent.systemInstructions = self.moderatorAgent.systemInstructions[:-1]
 		self.moderatorAgent.systemInstructions += "}"
    
-		memoryBuffer = self.agent1.memoryBuffer 
-		for dialogue in memoryBuffer:
-			if dialogue.get('role') == 'user':
-				self.moderatorAgent.addToMemoryBuffer('user', f"{self.agent2.name}'s Response: " + dialogue.get('content'))
-			elif dialogue.get('role') == 'assistant':
-				self.moderatorAgent.addToMemoryBuffer('user', f"{self.agent1.name}'s Response: " + dialogue.get('content'))
+		memory = self.agent1.memory 
+		for message in memory:
+			if isinstance(message, HumanMessage):
+				self.moderatorAgent.addToMemoryBuffer('user', f"{self.agent2.name}'s Response: {message.content}")
+			elif isinstance(message, AIMessage):
+				self.moderatorAgent.addToMemoryBuffer('user', f"{self.agent1.name}'s Response: {message.content}")
 
 		isDict = False
 		notDictErrorStr = "You did not return a valid dictionary. Please follow the format precisely, with no additional text. A dictionary is formatted as {'key1':'value1', 'key2':'value2', ...}."
@@ -407,23 +349,10 @@ Rules:
 
 				# uncomment to allow user to talk to agents directly inbetween messages or see memory buffers live
 				# self.interruptConversation() 
-    
+	
 			print(f"\nAsking Moderator for Consensus...")
    
 			consensusReached = self.getConsensus(self.boardState)
    
-def main():
-	numIterations = 3
-	agent1 = Agent("Agent 1")
-	agent2 = Agent("Agent 2")
- 
-	# Pref levels are on a scale from 0.0 to 1.0, where 1.0 is the most prefered item and 0.0 is the least preferred item
-	items = [('Item A', 3, 1), ('Item B', 2, 2), ('Item C', 1, 4), ('Item D', 4, 3)] # formatted as [('Task X', Pref1, Pref2), ...]
-	items = [Item(item[0], item[1], item[2]) for item in items]
-	domain = Domain(agent1, agent2, items)
-	domain.startNegotiation(numIterations)
-
-	# agent1.printMemoryBuffer(otherAgent = agent2)
-	# agent2.printMemoryBuffer(otherAgent = agent1)
- 
-# main()
+if __name__ == '__main__':
+    pass  # Add code to initialize and start domain negotiation if necessary
