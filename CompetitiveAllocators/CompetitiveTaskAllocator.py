@@ -2,7 +2,6 @@ import os
 import ast
 import ollama
 from colorama import Fore
-import concurrent.futures
 from dotenv import load_dotenv
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema import AIMessage, HumanMessage, SystemMessage

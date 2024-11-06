@@ -4,7 +4,6 @@ import itertools
 from datetime import datetime
 from colorama import Fore
 import CompetitiveTaskAllocator as compTA
-from langchain_community.chat_models import ChatOpenAI  # Updated import
 
 def main():
     numRounds = 100  # Number of rounds to be run
@@ -12,8 +11,8 @@ def main():
     numIterations = 4  # Number of conversation iterations per round
     distanceFromOptimalCeiling = 15  # Example value
 
-    agent1Model = 'gemma2:latest'  # Model for agent 1
-    agent1UseOpenAI = False  # Use OpenAI API for agent 1
+    agent1Model = 'gpt-4o-mini'  # Model for agent 1
+    agent1UseOpenAI = True  # Use OpenAI API for agent 1
 
     agent2Model = 'gpt-4o-mini'  # Model for agent 2
     agent2UseOpenAI = True  # Use OpenAI API for agent 2
