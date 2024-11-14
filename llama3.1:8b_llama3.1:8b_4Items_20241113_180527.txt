@@ -1,0 +1,9 @@
+COMPETITIVE ITEM ALLOCATION LOG
+
+Number of Items to Allocate: 4
+Number of Rounds: 100
+Default Number of Conversation Iterations Per Round: 4
+Total Distance from Optimal Ceiling: Allocations must be less than 15% away from the optimal solution
+Agent 1 LLM Being Used to Allocate items: llama3.1:8bAgent 2 LLM Being Used to Allocate items: llama3.1:8b
+
+~~~~~~~~~~~~~~~~~~~~~~~~~  ROUND 1 OF 100  ~~~~~~~~~~~~~~~~~~~~~~~~~

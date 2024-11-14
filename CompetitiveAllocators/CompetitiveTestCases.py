@@ -6,18 +6,20 @@ from colorama import Fore
 import CompetitiveTaskAllocator as compTA
 
 def main():
-    numRounds = 100  # Number of rounds to be run
+    numRounds = 2  # Number of rounds to be run
     numItems = 4  # Number of items to be assigned per round
     numIterations = 4  # Number of conversation iterations per round
     distanceFromOptimalCeiling = 15  # Example value
 
-    agent1Model = 'gpt-4o-mini'  # Model for agent 1
+    agent1Model = "gpt-3.5-turbo"  # Model for agent 1
     agent1UseOpenAI = True  # Use OpenAI API for agent 1
+    # Let agent 1 be a "default" agent with no strategy.
 
-    agent2Model = 'gpt-4o-mini'  # Model for agent 2
+    agent2Model = "gpt-3.5-turbo"  # Model for agent 2
     agent2UseOpenAI = True  # Use OpenAI API for agent 2
+    # Let agent 2 be a modified agent using the Boulware strategy.
 
-    moderatorModel = "gpt-4o-mini"  # Model for the moderator
+    moderatorModel = "gpt-3.5-turbo"  # Model for the moderator
     moderatorUseOpenAI = True  # Use OpenAI API for the moderator
 
     print("\n" + ("=" * 25) + "  COMPETITIVE ITEM ALLOCATION TEST  " + ("=" * 25) + "\n")
@@ -143,7 +145,7 @@ def run_tests(numRounds, numItems, numIterations, distanceFromOptimalCeiling, lo
         f.write(f"\nAverage Time per Round (hh:mm:ss): {format_seconds(totalTime / numRounds)}\n")
 
 def generate_items(numItems):
-    itemNames = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
+    itemNames = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P"]
     prefValues1 = [round(random.uniform(0, 1), 1) for _ in range(numItems)]
     prefValues2 = [round(random.uniform(0, 1), 1) for _ in range(numItems)]
     items = []
@@ -151,6 +153,7 @@ def generate_items(numItems):
         item = f"Item {itemNames[i]}"
         items.append(compTA.Item(item, prefValues1[i], prefValues2[i]))
     return items
+
 
 def getOptimalAllocation(items):
     optimalSolution = []
@@ -171,7 +174,20 @@ def getOptimalAllocation(items):
             bestPrefSum = prefSum
             optimalSolution = [group1, group2]
 
-    return optimalSolution[0], optimalSolution[1], bestPrefSum
+    return optimalSolution[0], optimalSolution[1], bestPrefSum\
+        
+def calculatePrefSum(agent1items, agent2items):
+    p1 = sum(item.pref1 for item in agent1items)
+    p2 = sum(item.pref2 for item in agent2items)
+    return p1 + p2
+
+def hasOptimalAllocation(agent1items, agent2items, bestPrefSum):
+    currPrefSum = calculatePrefSum(agent1items, agent2items)
+    return currPrefSum >= bestPrefSum
+
+def getTotalDistanceFromOptimal(agent1items, agent2items, bestPrefSum):
+    currPrefSum = calculatePrefSum(agent1items, agent2items)
+    return round(100 * abs(currPrefSum - bestPrefSum) / bestPrefSum)
 
 def isParetoOptimal(domain):
     agent1items = domain.boardState.getItems(domain.agent1.name)
@@ -200,19 +216,6 @@ def isParetoOptimal(domain):
             return False, currentScore1, currentScore2
 
     return True, currentScore1, currentScore2
-
-def calculatePrefSum(agent1items, agent2items):
-    p1 = sum(item.pref1 for item in agent1items)
-    p2 = sum(item.pref2 for item in agent2items)
-    return p1 + p2
-
-def hasOptimalAllocation(agent1items, agent2items, bestPrefSum):
-    currPrefSum = calculatePrefSum(agent1items, agent2items)
-    return currPrefSum >= bestPrefSum
-
-def getTotalDistanceFromOptimal(agent1items, agent2items, bestPrefSum):
-    currPrefSum = calculatePrefSum(agent1items, agent2items)
-    return round(100 * abs(currPrefSum - bestPrefSum) / bestPrefSum)
 
 def format_seconds(seconds):
     total_seconds = int(seconds)
