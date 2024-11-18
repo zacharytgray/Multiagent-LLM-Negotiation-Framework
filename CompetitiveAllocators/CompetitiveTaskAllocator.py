@@ -8,6 +8,7 @@ from langchain.schema import AIMessage, HumanMessage, SystemMessage
 from langchain_community.chat_models import ChatOpenAI 
 from langchain_ollama import ChatOllama 
 import itertools
+import matplotlib.pyplot as plt  # Import for plotting
 
 load_dotenv("/Users/zacharytgray/Documents/GitHub/Ollama-LLM-Sandbox/keys.env")
 openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -423,6 +424,14 @@ class Domain:
 
 		deal_counter = 0  # Counts consecutive "Deal!" responses
 
+		# Initialize lists to store utilities and iteration numbers
+		iteration_numbers = []
+		agent1_utilities = []
+		agent2_utilities = []
+
+		# Initialize current proposal
+		currentProposal = None
+
 		while not consensusReached and iteration < maxIterations:
 			response = currentAgent.run("user", currentInput)
 			if currentAgent == self.agent1:
@@ -465,11 +474,53 @@ class Domain:
 			currentAgent = self.agent2 if currentAgent == self.agent1 else self.agent1
 			currentInput = response
 
+			 # **Parse the proposed allocation after each response**
+			proposal = self.parseAllocationFromMessage(response)
+			if proposal: # prints most recent proposal found in conversation
+				print(f"Proposal: {proposal}")
+				# print agent 1 and 2's utilities for the proposal
+				print(f"Agent 1 Utility: {sum(item.pref1 for item in self.items if proposal.get(item.name) == self.agent1.name)}")
+				print(f"Agent 2 Utility: {sum(item.pref2 for item in self.items if proposal.get(item.name) == self.agent2.name)}")
+				# **Calculate utilities based on the current proposal**
+				agent1Utility = sum(
+					item.pref1 for item in self.items
+					if proposal.get(item.name) == self.agent1.name
+				)
+				agent2Utility = sum(
+					item.pref2 for item in self.items
+					if proposal.get(item.name) == self.agent2.name
+				)
+
+				# Append the utilities and iteration number to the lists
+				iteration_numbers.append(iteration)
+				agent1_utilities.append(agent1Utility)
+				agent2_utilities.append(agent2Utility)
+			else:
+				# If no valid proposal, use the last known utilities or zeros
+				iteration_numbers.append(iteration)
+				agent1_utilities.append(agent1_utilities[-1] if agent1_utilities else 0)
+				agent2_utilities.append(agent2_utilities[-1] if agent2_utilities else 0)
+
+			# **Ensure that iteration utilities are calculated after each agent's turn**
+			iteration += 1
+			self.numConversationIterations += 1
+
 			if iteration == maxIterations:
 				print("\nMaximum iterations reached without agreement.")
 
 		if not consensusReached:
 			print("\nNo agreement reached within the iteration limit.")
+
+		# After the negotiation, generate the scatter plot
+		plt.figure()
+		plt.plot(iteration_numbers, agent1_utilities, marker='o', color='blue', label='Agent 1 Utility')
+		plt.plot(iteration_numbers, agent2_utilities, marker='o', color='red', label='Agent 2 Utility')
+		plt.xlabel('Iteration Number')
+		plt.ylabel('Agent Utility')
+		plt.title('Agent Utilities per Iteration')
+		plt.legend()
+		plt.grid(True)
+		plt.show()
 
 	def extractFinalAllocation(self):
 		# Initialize board state
