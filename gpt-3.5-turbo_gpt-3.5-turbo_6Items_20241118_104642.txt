@@ -1,0 +1,9 @@
+COMPETITIVE ITEM ALLOCATION LOG
+
+Number of Items to Allocate: 6
+Number of Rounds: 1
+Maximum Number of Conversation Iterations Per Round: 32
+Total Distance from Optimal Ceiling: Allocations must be less than 15% away from the optimal solution
+Agent 1 LLM Being Used to Allocate items: gpt-3.5-turboAgent 2 LLM Being Used to Allocate items: gpt-3.5-turbo
+
+~~~~~~~~~~~~~~~~~~~~~~~~~  ROUND 1 OF 1  ~~~~~~~~~~~~~~~~~~~~~~~~~
