@@ -197,29 +197,35 @@ def isParetoOptimal(domain):
     agent1items = domain.boardState.getItems(domain.agent1.name)
     agent2items = domain.boardState.getItems(domain.agent2.name)
     items = domain.items
-    currentAllocation = (agent1items, agent2items)
+    
+    # Calculate current utilities
     currentScore1 = sum(item.pref1 for item in agent1items)
     currentScore2 = sum(item.pref2 for item in agent2items)
-
-    for comb in itertools.combinations(items, len(agent1items)):
-        group1 = comb
-        group2 = tuple(item for item in items if item not in group1)
-
-        score1 = sum(item.pref1 for item in group1)
-        score2 = sum(item.pref2 for item in group2)
-
-        if ((score1 > currentScore1 and score2 >= currentScore2) or
-            (score2 > currentScore2 and score1 >= currentScore1)):
+    
+    # Generate all possible allocations
+    n = len(items)
+    for i in range(n + 1):  # Try all possible group sizes
+        for alternative_agent1_items in itertools.combinations(items, i):
+            # Create the complementary allocation for agent 2
+            alternative_agent2_items = tuple(item for item in items if item not in alternative_agent1_items)
             
-            print(f"\nNot Pareto Optimal.\n")
-            print("Current Allocation:\n ")
-            print("Agent 1: ", currentAllocation[0])
-            print("Agent 2: ", currentAllocation[1])
-            print("\nDominating Allocation:\n ")
-            print("Agent 1: ", group1)
-            print("Agent 2: ", group2)
-            return False, currentScore1, currentScore2
-
+            # Calculate utilities for this alternative allocation
+            altScore1 = sum(item.pref1 for item in alternative_agent1_items)
+            altScore2 = sum(item.pref2 for item in alternative_agent2_items)
+            
+            # Check if this alternative allocation dominates the current one
+            if ((altScore1 > currentScore1 and altScore2 >= currentScore2) or
+                (altScore2 > currentScore2 and altScore1 >= currentScore1)):
+                
+                print(f"\nNot Pareto Optimal.\n")
+                print(f"{Fore.YELLOW}Current Allocation:")
+                print(f"Agent 1: {agent1items} (utility: {currentScore1})")
+                print(f"Agent 2: {agent2items} (utility: {currentScore2}){Fore.RESET}")
+                print(f"\n{Fore.RED}Dominating Allocation:")
+                print(f"Agent 1: {alternative_agent1_items} (utility: {altScore1})")
+                print(f"Agent 2: {alternative_agent2_items} (utility: {altScore2}){Fore.RESET}")
+                return False, currentScore1, currentScore2
+    
     return True, currentScore1, currentScore2
 
 def format_seconds(seconds):

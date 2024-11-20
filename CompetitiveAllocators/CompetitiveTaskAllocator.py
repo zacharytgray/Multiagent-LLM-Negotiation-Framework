@@ -382,15 +382,17 @@ class Domain:
 		# Add clear format instructions for proposals with stronger emphasis on completeness
 		all_items_str = ", ".join(item.name for item in items)
 		proposal_format = f"""
-		\nWhen proposing allocations:
-		1. You MUST allocate ALL of these items in every proposal: {all_items_str}
-		2. ALWAYS write your own name followed by the items you want for yourself
-		3. THEN write your opponent's name followed by their items
-		4. Format example: 
-		   Agent 1: Item X, Item Y, Item Z
-		   Agent 2: Item W, Item V, Item U
-		5. IMPORTANT: Leaving out any items will cause your proposal to be rejected
-		6. Current items that MUST be allocated: {all_items_str}
+		\nWhen negotiating:
+		1. You can explain your reasoning and discuss preferences
+		2. Be professional but conversational in your responses
+		3. When making a proposal, format it as follows:
+		   - First, explain your reasoning (optional but encouraged)
+		   - Then clearly state your proposal using this format:
+		   Agent 1: [items for Agent 1]
+		   Agent 2: [items for Agent 2]
+		4. ALL items must be allocated in every proposal: {all_items_str}
+		5. You can counter-propose and explain why you think your proposal is fair
+		6. You can refer to item preferences when explaining your proposals
 		"""
 		
 		self.agent1.systemInstructions += proposal_format
@@ -428,6 +430,7 @@ class Domain:
 		iteration_numbers = []
 		agent1_utilities = []
 		agent2_utilities = []
+		proposing_agents = []  # Add this list to track who made each proposal
 
 		# Initialize current proposal
 		currentProposal = None
@@ -465,6 +468,10 @@ class Domain:
 						break
 				else:
 					currentInput = "Deal!"
+					# Append to all lists to maintain consistent lengths
+					iteration_numbers.append(iteration)
+					agent1_utilities.append(agent1_utilities[-1] if agent1_utilities else 0)
+					agent2_utilities.append(agent2_utilities[-1] if agent2_utilities else 0)
 			else:
 				# Reset Deal! counter if response doesn't contain "Deal!"
 				deal_counter = 0
@@ -491,22 +498,16 @@ class Domain:
 					if proposal.get(item.name) == self.agent2.name
 				)
 
-				# Append the utilities and iteration number to the lists
+				 # Store which agent made this proposal
+				proposing_agents.append("A1Prop" if currentAgent == self.agent1 else "A2Prop")
 				iteration_numbers.append(iteration)
 				agent1_utilities.append(agent1Utility)
 				agent2_utilities.append(agent2Utility)
 			else:
-				# If no valid proposal, use the last known utilities or zeros
+				# Append to all lists to maintain consistent lengths
 				iteration_numbers.append(iteration)
 				agent1_utilities.append(agent1_utilities[-1] if agent1_utilities else 0)
 				agent2_utilities.append(agent2_utilities[-1] if agent2_utilities else 0)
-
-			# **Ensure that iteration utilities are calculated after each agent's turn**
-			iteration += 1
-			self.numConversationIterations += 1
-
-			if iteration == maxIterations:
-				print("\nMaximum iterations reached without agreement.")
 
 		if not consensusReached:
 			print("\nNo agreement reached within the iteration limit.")
