@@ -10,7 +10,7 @@ from langchain_ollama import ChatOllama
 import itertools
 import matplotlib.pyplot as plt  # Import for plotting
 
-load_dotenv("/Users/zacharytgray/Documents/GitHub/Ollama-LLM-Sandbox/keys.env")
+load_dotenv("keys.env")
 openai_api_key = os.getenv("OPENAI_API_KEY")
 if openai_api_key is None:
 	print("API key for OpenAI not found.")
@@ -178,6 +178,11 @@ class BoulwareAgent(Agent):
 				item.pref2 for item in self.items 
 				if item.name in opponentOffer and opponentOffer[item.name] == self.name
 			)
+
+		 # **Handle 'Deal!' immediately**
+		if "Deal!" in inputText:
+			self.addToMemoryBuffer('assistant', "Deal!")
+			return "Deal!"
 
 		# Update current proposal based on the number of rounds
 		self.strategy.updateCurrentAllocation(self.strategy.NumRounds + 1)
@@ -356,6 +361,10 @@ class Domain:
 		self.numConversationIterations = 0
 		self.boardState = BoardState(self.agent1, self.agent2, items)
 		self.consensusCounter = 0
+		self.iteration_numbers = []
+		self.agent1_utilities = []
+		self.agent2_utilities = []
+		self.proposing_agents = []
   
 		for item in self.items:
 			# Remove agent names from preference statements to avoid confusion
@@ -426,12 +435,6 @@ class Domain:
 
 		deal_counter = 0  # Counts consecutive "Deal!" responses
 
-		# Initialize lists to store utilities and iteration numbers
-		iteration_numbers = []
-		agent1_utilities = []
-		agent2_utilities = []
-		proposing_agents = []  # Add this list to track who made each proposal
-
 		# Initialize current proposal
 		currentProposal = None
 
@@ -469,9 +472,9 @@ class Domain:
 				else:
 					currentInput = "Deal!"
 					# Append to all lists to maintain consistent lengths
-					iteration_numbers.append(iteration)
-					agent1_utilities.append(agent1_utilities[-1] if agent1_utilities else 0)
-					agent2_utilities.append(agent2_utilities[-1] if agent2_utilities else 0)
+					self.iteration_numbers.append(iteration)
+					self.agent1_utilities.append(self.agent1_utilities[-1] if self.agent1_utilities else 0)
+					self.agent2_utilities.append(self.agent2_utilities[-1] if self.agent2_utilities else 0)
 			else:
 				# Reset Deal! counter if response doesn't contain "Deal!"
 				deal_counter = 0
@@ -499,23 +502,24 @@ class Domain:
 				)
 
 				 # Store which agent made this proposal
-				proposing_agents.append("A1Prop" if currentAgent == self.agent1 else "A2Prop")
-				iteration_numbers.append(iteration)
-				agent1_utilities.append(agent1Utility)
-				agent2_utilities.append(agent2Utility)
+				self.proposing_agents.append("A1Prop" if currentAgent == self.agent1 else "A2Prop")
+				self.iteration_numbers.append(iteration)
+				self.agent1_utilities.append(agent1Utility)
+				self.agent2_utilities.append(agent2Utility)
 			else:
 				# Append to all lists to maintain consistent lengths
-				iteration_numbers.append(iteration)
-				agent1_utilities.append(agent1_utilities[-1] if agent1_utilities else 0)
-				agent2_utilities.append(agent2_utilities[-1] if agent2_utilities else 0)
+				self.iteration_numbers.append(iteration)
+				self.agent1_utilities.append(self.agent1_utilities[-1] if self.agent1_utilities else 0)
+				self.agent2_utilities.append(self.agent2_utilities[-1] if self.agent2_utilities else 0)
 
 		if not consensusReached:
 			print("\nNo agreement reached within the iteration limit.")
 
-		# After the negotiation, generate the scatter plot
+	def generate_utility_plot(self):
+		import matplotlib.pyplot as plt
 		plt.figure()
-		plt.plot(iteration_numbers, agent1_utilities, marker='o', color='blue', label='Agent 1 Utility')
-		plt.plot(iteration_numbers, agent2_utilities, marker='o', color='red', label='Agent 2 Utility')
+		plt.plot(self.iteration_numbers, self.agent1_utilities, marker='o', color='blue', label='Agent 1 Utility')
+		plt.plot(self.iteration_numbers, self.agent2_utilities, marker='o', color='red', label='Agent 2 Utility')
 		plt.xlabel('Iteration Number')
 		plt.ylabel('Agent Utility')
 		plt.title('Agent Utilities per Iteration')

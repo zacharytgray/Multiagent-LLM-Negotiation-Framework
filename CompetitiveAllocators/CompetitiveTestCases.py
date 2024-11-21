@@ -4,6 +4,7 @@ import itertools
 from datetime import datetime
 from colorama import Fore
 import CompetitiveTaskAllocator as compTA
+import re  # Add this import for regular expression functions
 
 def main():
     numRounds = 1  # Number of rounds to be run
@@ -11,16 +12,16 @@ def main():
     maxIterations = 32  # Number of conversation iterations per round
     distanceFromOptimalCeiling = 15  # Example value
 
-    agent1Model = "gpt-3.5-turbo"  # Model for agent 1
-    agent1UseOpenAI = True  # Use OpenAI API for agent 1
+    agent1Model = "gemma2:2b"  # Model for agent 1
+    agent1UseOpenAI = False  # Use OpenAI API for agent 1
     # Let agent 1 be a "default" agent with no strategy.
 
-    agent2Model = "gpt-3.5-turbo"  # Model for agent 2
-    agent2UseOpenAI = True  # Use OpenAI API for agent 2
+    agent2Model = "gemma2:2b"  # Model for agent 2
+    agent2UseOpenAI = False  # Use OpenAI API for agent 2
     # Let agent 2 be a modified agent using the Boulware strategy.
 
-    moderatorModel = "gpt-3.5-turbo"  # Model for the moderator
-    moderatorUseOpenAI = True  # Use OpenAI API for the moderator
+    moderatorModel = "gemma2:2b"  # Model for the moderator
+    moderatorUseOpenAI = False  # Use OpenAI API for the moderator
 
     print("\n" + ("=" * 25) + "  COMPETITIVE ITEM ALLOCATION TEST  " + ("=" * 25) + "\n")
     print(f"Number of Items to Allocate: {numItems}")
@@ -30,8 +31,12 @@ def main():
     print(f"\nAgent 1 LLM Being Used to Allocate items: {agent1Model}")
     print(f"Agent 2 LLM Being Used to Allocate items: {agent2Model}\n")
 
+    # Sanitize model names for filenames
+    safeAgent1Model = re.sub(r'[<>:"/\\|?*]', '_', agent1Model)
+    safeAgent2Model = re.sub(r'[<>:"/\\|?*]', '_', agent2Model)
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    logFilename = f"{agent1Model}_{agent2Model}_{numItems}Items_{timestamp}.txt"
+    logFilename = f"{safeAgent1Model}_{safeAgent2Model}_{numItems}Items_{timestamp}.txt"
 
     with open(logFilename, "w") as f:
         f.write("COMPETITIVE ITEM ALLOCATION LOG\n\n")
@@ -90,6 +95,9 @@ def run_tests(numRounds, numItems, maxIterations, distanceFromOptimalCeiling, lo
         else:
             print(f"{Fore.RED}Is Not Pareto Optimal{Fore.RESET}\n")
         print(f"Is Pareto Optimal: {hasParetoOptimal}")
+
+        # Display the utility graph after Pareto optimality check
+        domain.generate_utility_plot()
 
         if totalDistanceFromOptimal < distanceFromOptimalCeiling:
             with open(logFilename, "a") as f:
@@ -235,3 +243,6 @@ def format_seconds(seconds):
     remaining_seconds = total_seconds % 60
     return f"{hours:02}:{minutes:02}:{remaining_seconds:02}"
 if __name__ == '__main__':    main()
+
+# Need to slow down how quickly boulware agent decreases index. Make it fit expected curve
+# Add labels to show agent 1's turn or agent 2's
