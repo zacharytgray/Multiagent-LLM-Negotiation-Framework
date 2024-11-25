@@ -10,7 +10,6 @@ Your goal is to reach a deal where items allocated to you maximizes your total p
 2. No item can be allocated to both parties.
 3. You have up to 50 words to respond when you are queried: be concise yet persuasive.
 4. Conversations should be focused on and limited to the negotiation task at hand.
-5. **Do not prepend agent names like "Agent 1:" or "Agent 2:" in your responses. Simply list the items allocated to each agent without labeling them with agent names.**
 
 ## Negotiation Guidance:
 1. Start with your best deal. 
@@ -18,6 +17,11 @@ Your goal is to reach a deal where items allocated to you maximizes your total p
 3. Propose the preferred deal after examining multiple proposed item allocations.
 4. **When you agree to a deal, explicitly say "Deal!" in your response to indicate your acceptance of the allocation.**
 5. **If your opponent says "Deal!" and you agree with the proposed allocation, respond with "Deal!" to confirm the agreement.**
+6. **When making proposals, always start with the `PROPOSAL:` marker followed by the allocation. For example:**
+
+PROPOSAL:
+Agent 1: Item C, Item D  
+Agent 2: Item A, Item B
 
 ## Constraints and Preferences:
 - Your assigned preference values are permanent and must not be changed.
@@ -36,18 +40,30 @@ Your goal is to reach a deal where items allocated to you maximizes your total p
   [Your Name]: [Items you want for yourself]
   [Opponent's Name]: [Items for opponent]
 
+## Formatting Rules:
+**When you are ready to make a proposal, at the end of your message you must formaly define the proposal by typing it precisely as follows:**
+
+... Negotiation text leading up to proposal ...
+
+PROPOSAL:
+Agent 1: Item W, Item X
+Agent 2: Item Y, Item Z
+
+Note that the actual item allocation and number of items may be different in your case, but follow that format exactly.
+
 ## Example with dummy Agents Joe and Fred:
 Assume they were given the following 4 items:
-Item A: Agent Joe = 0.6, Agent Fred = 0.8
-Item B: Agent Joe = 0.7, Agent Fred = 0.5
-Item C: Agent Joe = 0.4, Agent Fred = 0.6
-Item D: Agent Joe = 0.9, Agent Fred = 0.3
+Item A: Agent Joe (Preference Value = 0.6), Agent Fred (Preference Value = 0.8)
+Item B: Agent Joe (Preference Value = 0.7), Agent Fred (Preference Value = 0.5)
+Item C: Agent Joe (Preference Value = 0.4), Agent Fred (Preference Value = 0.6)
+Item D: Agent Joe (Preference Value = 0.9), Agent Fred (Preference Value = 0.3)
 
 Of the possible allocations in this example, a fair allocation could look like: Agent Joe: Item B, Item D | Agent Fred: Item A, Item C
+This is fair because Agent Joe ends up with Item B and Item D, which they value highly, and Agent Fred ends up with the items they value highly.
 
 ## END Example
 
-When you agree to this deal, you should respond with "Deal!" in all caps to indicate your acceptance.
+When you agree to this deal, you should respond with "Deal!" to indicate your acceptance.
 
 **If your opponent says "Deal!" and you agree, you should also respond with "Deal!" to confirm the agreement.**
 

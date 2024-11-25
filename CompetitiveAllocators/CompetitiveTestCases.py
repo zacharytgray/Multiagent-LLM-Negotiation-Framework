@@ -12,15 +12,15 @@ def main():
     maxIterations = 32  # Number of conversation iterations per round
     distanceFromOptimalCeiling = 15  # Example value
 
-    agent1Model = "gemma2:2b"  # Model for agent 1
+    agent1Model = "gemma2:latest"  # Model for agent 1
     agent1UseOpenAI = False  # Use OpenAI API for agent 1
     # Let agent 1 be a "default" agent with no strategy.
 
-    agent2Model = "gemma2:2b"  # Model for agent 2
+    agent2Model = "gemma2:latest"  # Model for agent 2
     agent2UseOpenAI = False  # Use OpenAI API for agent 2
     # Let agent 2 be a modified agent using the Boulware strategy.
 
-    moderatorModel = "gemma2:2b"  # Model for the moderator
+    moderatorModel = "gemma2:latest"  # Model for the moderator
     moderatorUseOpenAI = False  # Use OpenAI API for the moderator
 
     print("\n" + ("=" * 25) + "  COMPETITIVE ITEM ALLOCATION TEST  " + ("=" * 25) + "\n")
@@ -212,6 +212,11 @@ def isParetoOptimal(domain):
     
     # Generate all possible allocations
     n = len(items)
+    epsilon = 1e-6  # Small value for floating-point comparison
+    
+    def is_nearly_greater(a, b, epsilon=epsilon):
+        return a > b + epsilon
+
     for i in range(n + 1):  # Try all possible group sizes
         for alternative_agent1_items in itertools.combinations(items, i):
             # Create the complementary allocation for agent 2
@@ -222,8 +227,8 @@ def isParetoOptimal(domain):
             altScore2 = sum(item.pref2 for item in alternative_agent2_items)
             
             # Check if this alternative allocation dominates the current one
-            if ((altScore1 > currentScore1 and altScore2 >= currentScore2) or
-                (altScore2 > currentScore2 and altScore1 >= currentScore1)):
+            if ((is_nearly_greater(altScore1, currentScore1) and (altScore2 > currentScore2 - epsilon)) or
+                (is_nearly_greater(altScore2, currentScore2) and (altScore1 > currentScore1 - epsilon))):
                 
                 print(f"\nNot Pareto Optimal.\n")
                 print(f"{Fore.YELLOW}Current Allocation:")
@@ -245,4 +250,7 @@ def format_seconds(seconds):
 if __name__ == '__main__':    main()
 
 # Need to slow down how quickly boulware agent decreases index. Make it fit expected curve
-# Add labels to show agent 1's turn or agent 2's
+# Fix bug where boulware doesnt behave correctly.
+# Agent 2 doesn't consistently listen to system messages telling it what to offer
+# Agent 2 says deal when system message tells them to make new offer
+# add check for new line character after "PROPOSAL:" in parse_allocation

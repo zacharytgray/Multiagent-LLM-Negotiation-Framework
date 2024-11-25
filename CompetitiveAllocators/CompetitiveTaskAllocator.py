@@ -25,6 +25,66 @@ def logAssignedItems(fileName, boardState):
 		f.write(f"\n{agent1Name}'s items: {agent1Items}\n")
 		f.write(f"{agent2Name}'s items: {agent2Items}\n")
 
+def parse_allocation(message_content, agent1_name, agent2_name, items):
+	message_content = message_content.replace('*', '')  # Remove asterisks
+	lines = message_content.strip().split('\n')
+ 
+	allocation = {}
+	
+	# Find the "PROPOSAL:" marker
+	proposal_index = -1
+	for i, line in enumerate(lines):
+		if line.strip().upper() == "PROPOSAL:":
+			proposal_index = i
+			break
+
+	hasDeal = "deal!" in message_content.lower()
+
+	if proposal_index != -1:
+		proposal_lines = lines[proposal_index + 1], lines[proposal_index + 2]
+		agent_lines = []
+		for line in proposal_lines:
+			line = line.strip()
+   
+			if line.lower().startswith('agent'): # Process all lines that start with "Agent"
+				agent_lines.append(line)
+
+			for line in agent_lines:
+				parts = line.split(':', 1) # second parameter is the maximum number of splits
+    
+				if len(parts) != 2:
+					print("Invalid proposal format: Missing colon")
+					print("Parsed Parts:", parts)
+					return None, hasDeal
+
+				agent_part = parts[0].strip().lower()
+				items_part = parts[1].strip()
+    
+				if agent_part == agent1_name.lower():
+					agent_name = agent1_name
+				elif agent_part == agent2_name.lower():
+					agent_name = agent2_name
+				else:
+					print(f"Invalid agent name: {agent_part}")
+					print("Parsed Agent Part:", agent_part)
+					return None, hasDeal
+	
+				items_list = [item.strip() for item in items_part.split(',') if item.strip()]
+				for item in items_list:
+					allocation[item] = agent_name
+
+		if len(allocation) != len(items):
+			print("Invalid proposal: Must include all items")
+			print("Parsed Allocation:", allocation)
+			return None, hasDeal
+
+		if len(agent_lines) != 2: # Ensure there are exactly two agent lines
+			print("Invalid proposal format: Must have exactly two agent lines")
+			print("Parsed Agent Lines:", agent_lines)
+			return None, hasDeal
+		
+	return (allocation if allocation else None), hasDeal
+
 class Agent:
 	def __init__(self, name, model_name, systemInstructionsFilename, useOpenAI=False):
 		self.name = name
@@ -76,12 +136,14 @@ class BoulwareStrategy:
 	def __init__(self, items, agent1Name, agent2Name):
 		self.items = items
 		self.agent1Name = agent1Name
-		self.agent2Name = agent2Name  # Add agent2Name
+		self.agent2Name = agent2Name  
 		self.currentProposal = None  # Agent 2's current planned proposal
 		self.currentUtility = 0  # Utility of currentProposal
 		self.currentProposalIndex = 0  # Index in utility rankings
-		self.rankedAllocations = self.getAllocationRankings()
-		self.NumRounds = 0  # Number of rounds passed
+		self.opponentOffer = None  # Opponent's last proposal
+		self.opponentProposalIndex = None  # Index in utility rankings
+		self.rankedAllocations = self.getAllocationRankings() # Ranked allocations by utility (0th index is highest utility for Agent 2)
+		self.numIterations = 0  # Number of rounds passed
 
 	def getAllocationRankings(self):
 		# Generate all possible allocations grouped by utility, allowing variable group sizes
@@ -116,37 +178,47 @@ class BoulwareStrategy:
 		# Return the currentProposal
 		return self.currentProposal
 
-	def shouldAccept(self, opponentOffer):
-		# Find the tier index of opponent's offer
-		opponentIndex = self.findProposalIndex(opponentOffer)
-		print(f"Debug - Opponent index: {opponentIndex}, Current index: {self.currentProposalIndex}")  # Added debug print
-		return opponentIndex <= self.currentProposalIndex and opponentIndex >= 0
+	def shouldAccept(self):
+		print(f"Opponent index: {self.opponentProposalIndex}")  # Added debug print
+		if self.opponentProposalIndex is None:
+			print("Error: Opponent proposal index not set.")
+			return False
+		if self.opponentProposalIndex <= self.currentProposalIndex:
+			if self.opponentProposalIndex >= 0:
+				return True	
+			else:
+				print(f"Error: Opponent proposal index is invalid: {self.opponentProposalIndex}")
+				return False
+		else:
+			return False
 
-	def updateCurrentAllocation(self, numRounds):
-		self.NumRounds = numRounds
+	def updateCurrentAllocation(self, numIterations):
+		self.numIterations = numIterations
 		totalTiers = len(self.rankedAllocations)
 		maxTierIndex = totalTiers - 1
 		# Ensure that for the first round, currentTierIndex is 0
-		if numRounds == 1:
+		if numIterations == 1:
 			currentTierIndex = 0
 		else:
 			currentTierIndex = min(
-				int(maxTierIndex * (1 - (0.9 ** (numRounds - 1)))), 
+				int(maxTierIndex * (1 - (0.9 ** (numIterations - 1)))), 
 				maxTierIndex
 			)
 		self.currentProposalIndex = currentTierIndex
 		self.currentProposal = self.rankedAllocations[currentTierIndex][0]  # Always select the top allocation in the tier
 
 	def findProposalIndex(self, proposal):
-		# Convert item names to sets for comparison
-		group1 = {item for item, agent in proposal.items()}
+		# Correctly process the proposal to separate items for Agent 1 and Agent 2
+		group1 = set()
 		group2 = set()
+		agent1_name_clean = self.agent1Name.strip().lower()
+		agent2_name_clean = self.agent2Name.strip().lower()
 		for item_name, agent in proposal.items():
-			if agent == self.agent2Name:  # If assigned to Agent 2
-				group2.add(item_name)
-				if item_name in group1:  # Remove from group1 if it was there
-					group1.remove(item_name)
-		
+			agent_clean = agent.strip().lower()
+			if agent_clean == agent1_name_clean:
+				group1.add(item_name.strip())
+			elif agent_clean == agent2_name_clean:
+				group2.add(item_name.strip())
 		# Now compare with ranked allocations
 		for tier_index, tier in enumerate(self.rankedAllocations):
 			for alloc in tier:
@@ -158,6 +230,28 @@ class BoulwareStrategy:
 		print(f"Looking for - Group1: {group1}, Group2: {group2}")
 		return -1
 
+def printMemoryBuffer(agent):
+    """Print an agent's memory buffer with color-coded messages"""
+    print(f"\n{Fore.CYAN}=== Memory Buffer for {agent.name} ===")
+    for idx, msg in enumerate(agent.memory, 1):
+        if isinstance(msg, SystemMessage):
+            color = Fore.YELLOW  # System messages in yellow
+            msg_type = "SYSTEM"
+        elif isinstance(msg, HumanMessage):
+            color = Fore.GREEN  # User messages in green
+            msg_type = "USER"
+        elif isinstance(msg, AIMessage):
+            color = Fore.MAGENTA  # AI/Assistant messages in magenta
+            msg_type = "ASSISTANT"
+        else:
+            color = Fore.WHITE  # Unknown message types in white
+            msg_type = "UNKNOWN"
+            
+        print(f"\n{color}[Message {idx} - {msg_type}]")
+        print(f"{msg.content}")
+        print(f"{'-'*50}{Fore.RESET}")
+    print(f"{Fore.CYAN}{'='*50}{Fore.RESET}\n")
+
 class BoulwareAgent(Agent):
 	def __init__(self, name, model_name, systemInstructionsFilename, items, agent1Name, useOpenAI=False):  # Added agent1Name parameter
 		super().__init__(name, model_name, systemInstructionsFilename, useOpenAI)
@@ -166,141 +260,104 @@ class BoulwareAgent(Agent):
 		self.opponentOffer = {}  # Opponent's last offer
 
 	def run(self, role, inputText):
-		opponentUtility = 0  # Initialize opponentUtility to a default value
+		self.memory = [msg for msg in self.memory if isinstance(msg, SystemMessage)]
 		self.addToMemoryBuffer(role, inputText)
-		# Parse the opponent's proposal
-		
-		opponentOffer = self.parse_proposal(inputText)
-		if opponentOffer != {}:
-			self.opponentOffer = opponentOffer
-			# Calculate utility of Agent 1's offer for Agent 2
-			opponentUtility = sum(
-				item.pref2 for item in self.items 
-				if item.name in opponentOffer and opponentOffer[item.name] == self.name
-			)
-
-		 # **Handle 'Deal!' immediately**
-		if "Deal!" in inputText:
-			self.addToMemoryBuffer('assistant', "Deal!")
-			return "Deal!"
-
-		# Update current proposal based on the number of rounds
-		self.strategy.updateCurrentAllocation(self.strategy.NumRounds + 1)
-
-		# Check if there is any allocation with utility >= opponentUtility
-		can_propose_better = False
-		for tier in self.strategy.rankedAllocations:
-			for allocation in tier:
-				if allocation[2] >= opponentUtility:
-					can_propose_better = True
-					break
-			if can_propose_better:
-				break
-
-		if can_propose_better and not self.strategy.shouldAccept(self.opponentOffer):
-			# Propose a better or equal allocation without prefixing agent names
-			proposed_allocation = self.strategy.getProposedAllocation()
-			# FIXED: Swapped group1_items and group2_items assignments to match the allocation
-			group1_items = [item.name for item in proposed_allocation[0]]  # Agent 1's items
-			group2_items = [item.name for item in proposed_allocation[1]]  # Agent 2's (self) items
-			other_agent_name = 'Agent 1' if self.name != 'Agent 1' else 'Agent 2'
-			systemMessage = (
-				f"Propose the following allocation:\n"
-				f"{other_agent_name}: {', '.join(group1_items)}\n"  # Give group1 items to Agent 1
-				f"{self.name}: {', '.join(group2_items)}"          # Keep group2 items for self (Agent 2)
-			)
-			self.addToMemoryBuffer('system', systemMessage)
-		else:
-			# Accept the opponent's offer
-			self.addToMemoryBuffer('assistant', "Deal!")
-			return "Deal!"
-
-		# Generate a response using the model
-		prompt = ChatPromptTemplate.from_messages(self.memory)
-		chain = prompt | self.model	
-		response = chain.invoke({})
-		response_content = response.content if isinstance(response, AIMessage) else response
-		self.addToMemoryBuffer('assistant', response_content)
-
-		# Print the current proposal index and opponent's offer index
-		currentProposalIndex = self.strategy.currentProposalIndex
-		opponentOfferIndex = self.strategy.findProposalIndex(self.opponentOffer)  # Updated reference
-  
-		return response_content.strip()
-
-	def parse_proposal(self, inputText):
 		other_agent_name = 'Agent 1' if self.name != 'Agent 1' else 'Agent 2'
-		if "Deal!" in inputText:
-			# Opponent has accepted the deal
-			print(f"{other_agent_name} has accepted the deal.")
-			return {}  # Return an empty proposal
+		newOpponentOffer, hasDeal = parse_allocation(inputText, other_agent_name, self.name, self.items)
+	
+		if hasDeal:
+			# Convert currentProposal tuple to dictionary format
+			current_proposal_dict = {}
+			# Add Agent 1's items
+			for item in self.strategy.currentProposal[0]:
+				current_proposal_dict[item.name] = other_agent_name
+			# Add Agent 2's items
+			for item in self.strategy.currentProposal[1]:
+				current_proposal_dict[item.name] = self.name
+				
+			self.opponentOffer = current_proposal_dict
+			self.strategy.opponentOffer = self.opponentOffer
+			self.strategy.opponentProposalIndex = self.strategy.currentProposalIndex
+		elif newOpponentOffer:
+			self.opponentOffer = newOpponentOffer
+			self.strategy.opponentProposalIndex = self.strategy.findProposalIndex(self.opponentOffer)
+			self.strategy.opponentOffer = self.opponentOffer
 
-		if not hasattr(self, 'moderatorAgent'):
-			if self.useOpenAI:
-				self.moderatorAgent = Agent("Moderator", self.model_name, "", useOpenAI=self.useOpenAI)
+		if self.strategy.shouldAccept():
+			print(f"{Fore.GREEN}Should Accept Deal{Fore.RESET}")
+			group1_items = [item_name for item_name, agent in self.opponentOffer.items() 
+						  if agent == other_agent_name]
+			group2_items = [item_name for item_name, agent in self.opponentOffer.items() 
+						  if agent == self.name]
+			systemMessage = (
+				f"{Fore.YELLOW}IMPORTANT: You must say 'Deal!' and restate this exact allocation:\n"
+				f"PROPOSAL:\n"
+				f"{other_agent_name}: {', '.join(group1_items)}\n"
+				f"{self.name}: {', '.join(group2_items)}"
+			)
+		else:
+			print(f"{Fore.RED}Should Decline Deal{Fore.RESET}")
+			self.strategy.updateCurrentAllocation(self.strategy.numIterations + 1)
+			group1_items = [item.name for item in self.strategy.currentProposal[0]]
+			group2_items = [item.name for item in self.strategy.currentProposal[1]]
+			
+			# Strengthen the system message to be more explicit
+			systemMessage = (
+				f"{Fore.YELLOW}CRITICAL INSTRUCTION - YOU MUST FOLLOW THIS EXACTLY:\n"
+				f"1. You must decline the current proposal\n"
+				f"2. You must then copy and paste this EXACT allocation without any changes:\n"
+				f"PROPOSAL:\n"
+				f"{other_agent_name}: {', '.join(group1_items)}\n"
+				f"{self.name}: {', '.join(group2_items)}\n"
+				f"3. Do not modify the items or allocations in any way\n"
+				f"4. Do not add or remove any items from the allocation"
+			)
+			
+		# Add response validation and retry logic
+		max_retries = 3
+		for attempt in range(max_retries):
+			self.addToMemoryBuffer('system', systemMessage)
+			prompt = ChatPromptTemplate.from_messages(self.memory)
+			chain = prompt | self.model	
+			response = chain.invoke({})
+			response_content = response.content if isinstance(response, AIMessage) else response
+			
+			# Validate the response
+			allocation, hasDeal = parse_allocation(response_content, other_agent_name, self.name, self.items)
+			
+			if allocation:
+				# Check if allocation matches required allocation
+				required_group1 = set(group1_items)
+				required_group2 = set(group2_items)
+				actual_group1 = {item_name for item_name, agent in allocation.items() 
+							   if agent == other_agent_name}
+				actual_group2 = {item_name for item_name, agent in allocation.items() 
+							   if agent == self.name}
+				print(f"{Fore.YELLOW}Expected Allocation: \nAgent 1: {required_group1} \nAgent 2: {required_group2}")
+				print(f"\nAgent 1's Offer Index: {self.strategy.opponentProposalIndex}")
+				print(f"Agent 2's New Allocation Index: {self.strategy.currentProposalIndex}")
+				if (required_group1 == actual_group1 and 
+					required_group2 == actual_group2):
+					# Valid response that matches requirements
+					self.addToMemoryBuffer('assistant', response_content)
+					return response_content.strip()
+					
+			if attempt < max_retries - 1:
+				# Try again with stronger message
+				systemMessage = (
+					f"{Fore.RED}WARNING: Your previous response did not match the required allocation.\n"
+					f"You MUST use the EXACT allocation specified. No modifications allowed.\n"
+					f"Required allocation:\n"
+					f"PROPOSAL:\n"
+					f"{other_agent_name}: {', '.join(group1_items)}\n"
+					f"{self.name}: {', '.join(group2_items)}"
+					)
+				# Clear the failed response from memory
+				self.memory.pop()
 			else:
-				self.moderatorAgent = Agent("Moderator", self.model_name, "", useOpenAI=self.useOpenAI)
-
-		# Clear the moderator's memory
-		self.moderatorAgent.memory = []
-		
-		self.moderatorAgent.systemInstructions = f"""
-		You have just received a message from {other_agent_name} in an item allocation negotiation.
-		All items MUST be allocated in every proposal.
-
-		Available items that MUST be allocated: {', '.join(item.name for item in self.items)}
-
-		Rules:
-		- Extract the proposed allocation from the message.
-		- ALL items must be allocated - partial allocations are not allowed
-		- Return the proposed allocation in a dictionary format: {{'Item A':'AGENT NAME', 'Item B':'AGENT NAME', ...}}
-		- 'AGENT NAME' must be either '{self.name}' or '{other_agent_name}'
-		- Do not include any extra text, only return the dictionary.
-		- If the proposal is incomplete or missing items, return an empty dictionary.
-
-		If no complete proposal is found, return an empty dictionary.
-		"""
-
-		self.moderatorAgent.addToMemoryBuffer('user', inputText)
-		
-		try:
-			response = self.moderatorAgent.run('user', self.moderatorAgent.systemInstructions)
-			proposal_dict = ast.literal_eval(response)
-			if isinstance(proposal_dict, dict):
-				# Ensure that only valid agent names are used
-				valid_agent_names = {self.name, other_agent_name}
-				corrected_proposal = {}
-				
-				# First pass: collect all valid items and their agents
-				for item, agent_name in proposal_dict.items():
-					item = item.strip()  # Clean up item name
-					if agent_name in valid_agent_names:
-						corrected_proposal[item] = agent_name
-				
-				# Verify both agents have at least one item
-				if not all(agent in set(corrected_proposal.values()) for agent in valid_agent_names):
-					print(f"Invalid proposal: Both agents must receive at least one item.")
-					return {}
-				
-				# Check for missing items
-				all_item_names = {item.name for item in self.items}
-				proposed_item_names = set(corrected_proposal.keys())
-				missing_items = all_item_names - proposed_item_names
-				
-				if missing_items:
-					missing_items_str = ", ".join(missing_items)
-					print(f"Incomplete proposal: Missing items: {missing_items_str}")
-					self.addToMemoryBuffer('system', 
-						f"Your proposal is incomplete. You forgot to allocate these items: {missing_items_str}. "
-						"Please propose a complete allocation that includes ALL items: {', '.join(all_item_names)}")
-					return {}  # Return empty dict for incomplete proposals
-				
-				return corrected_proposal
-				
-		except (ValueError, SyntaxError) as e:
-			print(f"Failed to parse proposal: {str(e)}")
-		
-		return {}
+				# If we've exhausted retries, use the last response
+				self.addToMemoryBuffer('assistant', response_content)
+				return response_content.strip()
 
 class Item:
 	def __init__(self, name, pref1, pref2):
@@ -360,11 +417,10 @@ class Domain:
 		self.numItems = len(items)
 		self.numConversationIterations = 0
 		self.boardState = BoardState(self.agent1, self.agent2, items)
-		self.consensusCounter = 0
-		self.iteration_numbers = []
-		self.agent1_utilities = []
-		self.agent2_utilities = []
-		self.proposing_agents = []
+		self.iteration_numbers = [] # Store iteration numbers for plotting
+		self.agent1_utilities = [] # Store Agent 1 utilities for plotting
+		self.agent2_utilities = [] # Store Agent 2 utilities for plotting
+		self.proposing_agents = [] # Store the agent who made each proposal for plotting
   
 		for item in self.items:
 			# Remove agent names from preference statements to avoid confusion
@@ -391,14 +447,15 @@ class Domain:
 		# Add clear format instructions for proposals with stronger emphasis on completeness
 		all_items_str = ", ".join(item.name for item in items)
 		proposal_format = f"""
-		\nWhen negotiating:
+		\nWhen negotiating:	
 		1. You can explain your reasoning and discuss preferences
 		2. Be professional but conversational in your responses
 		3. When making a proposal, format it as follows:
 		   - First, explain your reasoning (optional but encouraged)
 		   - Then clearly state your proposal using this format:
-		   Agent 1: [items for Agent 1]
-		   Agent 2: [items for Agent 2]
+			Proposal:
+			Agent 1: [items for Agent 1]
+			Agent 2: [items for Agent 2]
 		4. ALL items must be allocated in every proposal: {all_items_str}
 		5. You can counter-propose and explain why you think your proposal is fair
 		6. You can refer to item preferences when explaining your proposals
@@ -428,32 +485,47 @@ class Domain:
 			otherAgent = self.agent1
 		
 		currentInput = f"Hello! I'm {otherAgent.name}. Let's begin the item allocation negotiation. Please start the negotiation process."
-		otherAgent.addToMemoryBuffer('assistant', currentInput)
+		currentAgent.addToMemoryBuffer('user', currentInput)
 	
 		consensusReached = False
-		iteration = 0
-
 		deal_counter = 0  # Counts consecutive "Deal!" responses
 
-		# Initialize current proposal
-		currentProposal = None
-
-		while not consensusReached and iteration < maxIterations:
+		while not consensusReached and self.numConversationIterations < maxIterations:
 			response = currentAgent.run("user", currentInput)
+			allocation, hasDeal = parse_allocation(response, self.agent1.name, self.agent2.name, self.items)
+
 			if currentAgent == self.agent1:
 				print(f"{Fore.LIGHTBLUE_EX}\n{currentAgent.name}: \n	{response}{Fore.RESET}")
 			else:
 				print(f"{Fore.LIGHTMAGENTA_EX}\n{currentAgent.name}: \n	{response}{Fore.RESET}")
 
 			self.numConversationIterations += 1
-			iteration += 1
+   
+			# Calculate and store utilities if there's a valid allocation
+			if allocation:
+				agent1_utility = sum(
+					item.pref1 for item in self.items 
+					if allocation.get(item.name) == self.agent1.name
+				)
+				agent2_utility = sum(
+					item.pref2 for item in self.items
+					if allocation.get(item.name) == self.agent2.name
+				)
+				
+				self.iteration_numbers.append(self.numConversationIterations)
+				self.agent1_utilities.append(agent1_utility)
+				self.agent2_utilities.append(agent2_utility)
+				self.proposing_agents.append(currentAgent.name)
 
-			# Check if "Deal!" is in the response
-			if "deal!" in response.lower():
+				print(f"Agent 1 Utility: {agent1_utility}")
+				print(f"Agent 2 Utility: {agent2_utility}")
+   
+			if hasDeal:
 				deal_counter += 1
 				if deal_counter >= 2:
 					print("\nBoth agents agreed. Extracting final allocation...")
 					self.extractFinalAllocation()
+     
 					# After extraction, verify completeness
 					agent1items = self.boardState.getItems(self.agent1.name)
 					agent2items = self.boardState.getItems(self.agent2.name)
@@ -463,136 +535,75 @@ class Domain:
 					
 					if missing_items:
 						missing_str = ', '.join(missing_items)
-						print(f"{Fore.RED}Missing Items Detected: {missing_str}. Continuing negotiation to allocate all items.{Fore.RESET}")
 						currentInput = f"The following items were not allocated: {missing_str}. Please include them in your next proposal."
 						deal_counter = 0  # Reset deal counter to continue negotiation
 					else:
 						consensusReached = True
 						break
-				else:
-					currentInput = "Deal!"
-					# Append to all lists to maintain consistent lengths
-					self.iteration_numbers.append(iteration)
-					self.agent1_utilities.append(self.agent1_utilities[-1] if self.agent1_utilities else 0)
-					self.agent2_utilities.append(self.agent2_utilities[-1] if self.agent2_utilities else 0)
 			else:
 				# Reset Deal! counter if response doesn't contain "Deal!"
 				deal_counter = 0
-				last_agent_said_deal = None
 
 			# Swap agents for the next turn
 			currentAgent = self.agent2 if currentAgent == self.agent1 else self.agent1
 			currentInput = response
-
-			 # **Parse the proposed allocation after each response**
-			proposal = self.parseAllocationFromMessage(response)
-			if proposal: # prints most recent proposal found in conversation
-				print(f"Proposal: {proposal}")
-				# print agent 1 and 2's utilities for the proposal
-				print(f"Agent 1 Utility: {sum(item.pref1 for item in self.items if proposal.get(item.name) == self.agent1.name)}")
-				print(f"Agent 2 Utility: {sum(item.pref2 for item in self.items if proposal.get(item.name) == self.agent2.name)}")
-				# **Calculate utilities based on the current proposal**
-				agent1Utility = sum(
-					item.pref1 for item in self.items
-					if proposal.get(item.name) == self.agent1.name
-				)
-				agent2Utility = sum(
-					item.pref2 for item in self.items
-					if proposal.get(item.name) == self.agent2.name
-				)
-
-				 # Store which agent made this proposal
-				self.proposing_agents.append("A1Prop" if currentAgent == self.agent1 else "A2Prop")
-				self.iteration_numbers.append(iteration)
-				self.agent1_utilities.append(agent1Utility)
-				self.agent2_utilities.append(agent2Utility)
-			else:
-				# Append to all lists to maintain consistent lengths
-				self.iteration_numbers.append(iteration)
-				self.agent1_utilities.append(self.agent1_utilities[-1] if self.agent1_utilities else 0)
-				self.agent2_utilities.append(self.agent2_utilities[-1] if self.agent2_utilities else 0)
-
+   
 		if not consensusReached:
 			print("\nNo agreement reached within the iteration limit.")
 
+
 	def generate_utility_plot(self):
 		import matplotlib.pyplot as plt
-		plt.figure()
-		plt.plot(self.iteration_numbers, self.agent1_utilities, marker='o', color='blue', label='Agent 1 Utility')
-		plt.plot(self.iteration_numbers, self.agent2_utilities, marker='o', color='red', label='Agent 2 Utility')
-		plt.xlabel('Iteration Number')
-		plt.ylabel('Agent Utility')
-		plt.title('Agent Utilities per Iteration')
-		plt.legend()
-		plt.grid(True)
+		fig, ax = plt.subplots()
+		
+		# Plot utility lines
+		ax.plot(self.iteration_numbers, self.agent1_utilities, marker='o', color='blue', label='Agent 1 Utility')
+		ax.plot(self.iteration_numbers, self.agent2_utilities, marker='o', color='red', label='Agent 2 Utility')
+		
+		# For each point, add an 'X' marker if it was the starting agent
+		for i, (iter_num, agent1_util, agent2_util) in enumerate(zip(self.iteration_numbers, self.agent1_utilities, self.agent2_utilities)):
+			proposer = self.proposing_agents[i]
+			if proposer == "Agent 1":
+				ax.annotate('X', (iter_num, agent1_util), xytext=(0, 10),
+						   textcoords='offset points', ha='center')
+			else:
+				ax.annotate('X', (iter_num, agent2_util), xytext=(0, -10),
+						   textcoords='offset points', ha='center')
+
+		ax.set_xlabel('Iteration Number')
+		ax.set_ylabel('Agent Utility')
+		ax.set_title('Agent Utilities per Iteration')
+		ax.legend()
+		ax.grid(True)
 		plt.show()
 
 	def extractFinalAllocation(self):
 		# Initialize board state
 		self.boardState.resetItems()
+		
 		# Combine agents' memory
 		conversation = self.agent1.memory + self.agent2.memory
-
-		# Traverse the conversation to find the last proposed allocation
-		allocation = {}
+		
+		# Traverse the conversation backwards to find the last valid allocation
+		last_allocation = None
 		for message in reversed(conversation):
-			if isinstance(message, AIMessage) or isinstance(message, HumanMessage):
+			if isinstance(message, (AIMessage, HumanMessage)):
 				content = message.content
-				allocation = self.parseAllocationFromMessage(content)
-				if allocation:
-					break
-
-		if allocation:
-			# Assign items based on extracted allocation
-			for item_name, agent_name in allocation.items():
+				parsed, hasDeal = parse_allocation(content, self.agent1.name, self.agent2.name, self.items)
+				if isinstance(parsed, dict):  # Only store if it's a valid allocation dictionary
+					if parsed:
+						last_allocation = parsed
+						break  # Stop at the first valid allocation we find
+		
+		if last_allocation:
+			# Assign items based on the last valid allocation
+			for item_name, agent_name in last_allocation.items():
 				item_idx = self.getItemIndex(item_name)
 				if item_idx is not None:
 					self.boardState.addItem(self.items[item_idx], agent_name)
+			print("\nFinal allocation extracted successfully.")
 		else:
-			print("Failed to extract allocation from conversation.")
-			# Ensure that the fallback allocation is handled correctly
-			# Possibly assign no items or handle as per requirements
-
-	def parseAllocationFromMessage(self, message_content):
-		# Parse the allocation from the message content
-		allocation = {}
-		lines = message_content.strip().split('\n')
-		
-		# First, find lines that contain agent allocations
-		agent_lines = []
-		for line in lines:
-			line = line.strip()
-			if any(line.lower().startswith(prefix.lower()) for prefix in ['Agent', 'You:', 'Me:']):
-				agent_lines.append(line)
-		
-		# Process each agent line
-		for line in agent_lines:
-			# Split on ':' only for the first occurrence to handle item names that might contain colons
-			parts = line.split(':', 1)
-			if len(parts) == 2:
-				agent_part = parts[0].strip()
-				items_part = parts[1].strip()
-				
-				# Determine the agent name
-				if agent_part.lower() == 'you':
-					agent_name = self.agent2.name
-				elif agent_part.lower() == 'me':
-					agent_name = self.agent1.name
-				else:
-					agent_name = agent_part
-				
-				# Split items by comma and clean up each item name
-				items = [item.strip().rstrip('.') for item in items_part.split(',') if item.strip()]
-				
-				# Add each item to the allocation dictionary
-				for item in items:
-					if item:  # Only add non-empty items
-						allocation[item] = agent_name
-		
-		# Verify that we have a valid allocation (contains items for both agents)
-		if allocation and all(agent in {self.agent1.name, self.agent2.name} for agent in set(allocation.values())):
-			return allocation
-		return None
+			print("\nFailed to extract allocation from conversation.")
 
 	def printItems(self):
 		print(f"\n{Fore.YELLOW}{self.agent1.name}'s items: {self.boardState.getItems(self.agent1.name)}")
