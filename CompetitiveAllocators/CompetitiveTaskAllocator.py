@@ -45,33 +45,33 @@ def parse_allocation(message_content, agent1_name, agent2_name, items):
 		agent_lines = []
 		for line in proposal_lines:
 			line = line.strip()
-   
 			if line.lower().startswith('agent'): # Process all lines that start with "Agent"
 				agent_lines.append(line)
+		
+		# Process agent lines outside the loop
+		for line in agent_lines:
+			parts = line.split(':', 1)
+			
+			if len(parts) != 2:
+				print("Invalid proposal format: Missing colon")
+				print("Parsed Parts:", parts)
+				return None, hasDeal
 
-			for line in agent_lines:
-				parts = line.split(':', 1) # second parameter is the maximum number of splits
-    
-				if len(parts) != 2:
-					print("Invalid proposal format: Missing colon")
-					print("Parsed Parts:", parts)
-					return None, hasDeal
-
-				agent_part = parts[0].strip().lower()
-				items_part = parts[1].strip()
-    
-				if agent_part == agent1_name.lower():
-					agent_name = agent1_name
-				elif agent_part == agent2_name.lower():
-					agent_name = agent2_name
-				else:
-					print(f"Invalid agent name: {agent_part}")
-					print("Parsed Agent Part:", agent_part)
-					return None, hasDeal
+			agent_part = parts[0].strip().lower()
+			items_part = parts[1].strip()
 	
-				items_list = [item.strip() for item in items_part.split(',') if item.strip()]
-				for item in items_list:
-					allocation[item] = agent_name
+			if agent_part == agent1_name.lower():
+				agent_name = agent1_name
+			elif agent_part == agent2_name.lower():
+				agent_name = agent2_name
+			else:
+				print(f"Invalid agent name: {agent_part}")
+				print("Parsed Agent Part:", agent_part)
+				return None, hasDeal
+	
+			items_list = [item.strip() for item in items_part.split(',') if item.strip()]
+			for item in items_list:
+				allocation[item] = agent_name
 
 		if len(allocation) != len(items):
 			print("Invalid proposal: Must include all items")
@@ -92,7 +92,7 @@ class Agent:
 		self.numTokensGenerated = 0
 		self.memory = []  # Replace ConversationBufferMemory with a simple list
 		self.useOpenAI = useOpenAI
-		self.systemInstructions = f"Your name is {self.name}. "
+		self.systemInstructions = f"Your name is {self.name}.\n"
 		self.instructionsFilename = systemInstructionsFilename
 
 		if useOpenAI:
@@ -107,7 +107,7 @@ class Agent:
 			try:
 				with open(self.instructionsFilename, "r") as f:
 					self.systemInstructions += f.read()
-				self.addToMemoryBuffer('system', self.systemInstructions)
+				# self.addToMemoryBuffer('system', self.systemInstructions)
 			except FileNotFoundError:
 				print(f"Error: {self.instructionsFilename} not found.")
 				exit(1)
@@ -179,11 +179,10 @@ class BoulwareStrategy:
 		return self.currentProposal
 
 	def shouldAccept(self):
-		print(f"Opponent index: {self.opponentProposalIndex}")  # Added debug print
 		if self.opponentProposalIndex is None:
 			print("Error: Opponent proposal index not set.")
 			return False
-		if self.opponentProposalIndex <= self.currentProposalIndex:
+		if self.opponentProposalIndex <= self.nextProposalIndex(self.numIterations + 1):
 			if self.opponentProposalIndex >= 0:
 				return True	
 			else:
@@ -191,6 +190,18 @@ class BoulwareStrategy:
 				return False
 		else:
 			return False
+
+	def nextProposalIndex(self, numIterations):
+		totalTiers = len(self.rankedAllocations)
+		maxTierIndex = totalTiers - 1
+		if numIterations == 1:
+			nextTierIndex = 0
+		else:
+			nextTierIndex = min(
+				int(maxTierIndex * (1 - (0.9 ** (numIterations - 1)))), 
+				maxTierIndex
+			)
+		return nextTierIndex
 
 	def updateCurrentAllocation(self, numIterations):
 		self.numIterations = numIterations
@@ -231,26 +242,26 @@ class BoulwareStrategy:
 		return -1
 
 def printMemoryBuffer(agent):
-    """Print an agent's memory buffer with color-coded messages"""
-    print(f"\n{Fore.CYAN}=== Memory Buffer for {agent.name} ===")
-    for idx, msg in enumerate(agent.memory, 1):
-        if isinstance(msg, SystemMessage):
-            color = Fore.YELLOW  # System messages in yellow
-            msg_type = "SYSTEM"
-        elif isinstance(msg, HumanMessage):
-            color = Fore.GREEN  # User messages in green
-            msg_type = "USER"
-        elif isinstance(msg, AIMessage):
-            color = Fore.MAGENTA  # AI/Assistant messages in magenta
-            msg_type = "ASSISTANT"
-        else:
-            color = Fore.WHITE  # Unknown message types in white
-            msg_type = "UNKNOWN"
-            
-        print(f"\n{color}[Message {idx} - {msg_type}]")
-        print(f"{msg.content}")
-        print(f"{'-'*50}{Fore.RESET}")
-    print(f"{Fore.CYAN}{'='*50}{Fore.RESET}\n")
+	"""Print an agent's memory buffer with color-coded messages"""
+	print(f"\n{Fore.CYAN}=== Memory Buffer for {agent.name} ===")
+	for idx, msg in enumerate(agent.memory, 1):
+		if isinstance(msg, SystemMessage):
+			color = Fore.YELLOW  # System messages in yellow
+			msg_type = "SYSTEM"
+		elif isinstance(msg, HumanMessage):
+			color = Fore.GREEN  # User messages in green
+			msg_type = "USER"
+		elif isinstance(msg, AIMessage):
+			color = Fore.MAGENTA  # AI/Assistant messages in magenta
+			msg_type = "ASSISTANT"
+		else:
+			color = Fore.WHITE  # Unknown message types in white
+			msg_type = "UNKNOWN"
+			
+		print(f"\n{color}[Message {idx} - {msg_type}]")
+		print(f"{msg.content}")
+		print(f"{'-'*50}{Fore.RESET}")
+	print(f"{Fore.CYAN}{'='*50}{Fore.RESET}\n")
 
 class BoulwareAgent(Agent):
 	def __init__(self, name, model_name, systemInstructionsFilename, items, agent1Name, useOpenAI=False):  # Added agent1Name parameter
@@ -295,7 +306,7 @@ class BoulwareAgent(Agent):
 				f"{other_agent_name}: {', '.join(group1_items)}\n"
 				f"{self.name}: {', '.join(group2_items)}"
 			)
-		else:
+		else:	
 			print(f"{Fore.RED}Should Decline Deal{Fore.RESET}")
 			self.strategy.updateCurrentAllocation(self.strategy.numIterations + 1)
 			group1_items = [item.name for item in self.strategy.currentProposal[0]]
@@ -342,11 +353,15 @@ class BoulwareAgent(Agent):
 					self.addToMemoryBuffer('assistant', response_content)
 					return response_content.strip()
 					
-			if attempt < max_retries - 1:
+			if attempt < max_retries:
 				# Try again with stronger message
 				systemMessage = (
 					f"{Fore.RED}WARNING: Your previous response did not match the required allocation.\n"
 					f"You MUST use the EXACT allocation specified. No modifications allowed.\n"
+					)
+				if self.strategy.shouldAccept():
+					systemMessage += (f"You should say 'Deal!' in your response to agree to the current proposal and restate the allocation.")
+				systemMessage += (
 					f"Required allocation:\n"
 					f"PROPOSAL:\n"
 					f"{other_agent_name}: {', '.join(group1_items)}\n"
@@ -433,39 +448,25 @@ class Domain:
 		self.agent1.systemInstructions = self.agent1.systemInstructions.replace("[Your Name]", self.agent1.name).replace("[Opponent's Name]", self.agent2.name)
 		self.agent2.systemInstructions = self.agent2.systemInstructions.replace("[Your Name]", self.agent2.name).replace("[Opponent's Name]", self.agent1.name)
   
-		for item in self.items:
-			# Add explicit instructions about item assignment format
-			self.agent1.systemInstructions += (
-				f"\n- {item.name}: Your preference value for this item is {item.pref1} out of 1.0. "
-				f"The higher this value, the more you want this item for yourself."
-			)
-			self.agent2.systemInstructions += (
-				f"\n- {item.name}: Your preference value for this item is {item.pref2} out of 1.0. "
-				f"The higher this value, the more you want this item for yourself."
-			)
+		# # Add clear format instructions for proposals with stronger emphasis on completeness
+		# all_items_str = ", ".join(item.name for item in items)
+		# proposal_format = f"""
+		# \nWhen negotiating:	
+		# 1. You can explain your reasoning and discuss preferences
+		# 2. Be professional but conversational in your responses
+		# 3. When making a proposal, format it as follows:
+		#    - First, explain your reasoning (optional but encouraged)
+		#    - Then clearly state your proposal using this format:
+		# 	Proposal:
+		# 	Agent 1: [items for Agent 1]
+		# 	Agent 2: [items for Agent 2]
+		# 4. ALL items must be allocated in every proposal: {all_items_str}
+		# 5. You can counter-propose and explain why you think your proposal is fair
+		# 6. You can refer to item preferences when explaining your proposals
+		# """
 		
-		# Add clear format instructions for proposals with stronger emphasis on completeness
-		all_items_str = ", ".join(item.name for item in items)
-		proposal_format = f"""
-		\nWhen negotiating:	
-		1. You can explain your reasoning and discuss preferences
-		2. Be professional but conversational in your responses
-		3. When making a proposal, format it as follows:
-		   - First, explain your reasoning (optional but encouraged)
-		   - Then clearly state your proposal using this format:
-			Proposal:
-			Agent 1: [items for Agent 1]
-			Agent 2: [items for Agent 2]
-		4. ALL items must be allocated in every proposal: {all_items_str}
-		5. You can counter-propose and explain why you think your proposal is fair
-		6. You can refer to item preferences when explaining your proposals
-		"""
-		
-		self.agent1.systemInstructions += proposal_format
-		self.agent2.systemInstructions += proposal_format
-		
-		self.agent1.systemInstructions += "\n\nLet's begin! Remember to be concise."
-		self.agent2.systemInstructions += "\n\nLet's begin! Remember to be concise."
+		# self.agent1.systemInstructions += proposal_format
+		# self.agent2.systemInstructions += proposal_format
 
 	def getItemIndex(self, item_name: str):
 		for i, item in enumerate(self.items):
@@ -485,7 +486,7 @@ class Domain:
 			otherAgent = self.agent1
 		
 		currentInput = f"Hello! I'm {otherAgent.name}. Let's begin the item allocation negotiation. Please start the negotiation process."
-		currentAgent.addToMemoryBuffer('user', currentInput)
+		# currentAgent.addToMemoryBuffer('user', currentInput)
 	
 		consensusReached = False
 		deal_counter = 0  # Counts consecutive "Deal!" responses
@@ -525,7 +526,7 @@ class Domain:
 				if deal_counter >= 2:
 					print("\nBoth agents agreed. Extracting final allocation...")
 					self.extractFinalAllocation()
-     
+	 
 					# After extraction, verify completeness
 					agent1items = self.boardState.getItems(self.agent1.name)
 					agent2items = self.boardState.getItems(self.agent2.name)
@@ -550,7 +551,8 @@ class Domain:
    
 		if not consensusReached:
 			print("\nNo agreement reached within the iteration limit.")
-
+   
+		printMemoryBuffer(self.agent1)
 
 	def generate_utility_plot(self):
 		import matplotlib.pyplot as plt

@@ -250,7 +250,6 @@ def format_seconds(seconds):
 if __name__ == '__main__':    main()
 
 # Need to slow down how quickly boulware agent decreases index. Make it fit expected curve
-# Fix bug where boulware doesnt behave correctly.
-# Agent 2 doesn't consistently listen to system messages telling it what to offer
-# Agent 2 says deal when system message tells them to make new offer
 # add check for new line character after "PROPOSAL:" in parse_allocation
+# make graphs be cumulative so it shows results from all rounds in the same graph at the end
+# agent 1 thinks it's talking to agent 1
