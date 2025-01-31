@@ -84,17 +84,17 @@ class Negotiation:
                     else: # If proposal is invalid, prompt the agent to correct it
                         # Remove the last incorrect response from the memory
                         currentAgent.memory = currentAgent.memory[:-1] 
-                        if isValidProposal == NegotiationFlag.NOT_ENOUGH_ITEMS:
+                        if isValidProposal == NegotiationFlag.NOT_ENOUGH_TASKS:
                             # reprompt agent for proposal, including all tasks this time.
                             print(f"{Fore.RED}Invalid proposal: Not Enough Tasks{Fore.RESET}")
                             helperMessage = f"IMPORTANT: You must include all {len(self.tasks)} tasks in your proposal. Remember, these are the tasks for this negotiation: {', '.join([task.mappedName for task in self.tasks])}"
                             currentAgent.addToChatHistory('system', helperMessage)
-                        elif isValidProposal == NegotiationFlag.TOO_MANY_ITEMS:
+                        elif isValidProposal == NegotiationFlag.TOO_MANY_TASKS:
                             # reprompt agent for proposal, including only given tasks this time.
                             print(f"{Fore.RED}Invalid proposal: Too Many Tasks{Fore.RESET}")
                             helperMessage = f"IMPORTANT: You must include only {len(self.tasks)} tasks in your proposal. Remember, these are the tasks for this negotiation: {', '.join([task.mappedName for task in self.tasks])}"
                             currentAgent.addToChatHistory('system', helperMessage)
-                        elif isValidProposal == NegotiationFlag.INVALID_ITEMS_PRESENT:
+                        elif isValidProposal == NegotiationFlag.INVALID_TASKS_PRESENT:
                             # reprompt agent for proposal, including only given tasks this time.
                             print(f"{Fore.RED}Invalid proposal: Invalid Tasks Present{Fore.RESET}")
                             helperMessage = f"IMPORTANT: You must include only the following {len(self.tasks)} tasks in your proposal: {', '.join([task.mappedName for task in self.tasks])}"

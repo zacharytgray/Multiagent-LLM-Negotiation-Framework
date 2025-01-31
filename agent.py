@@ -7,8 +7,6 @@ from colorama import Fore
 from dotenv import load_dotenv
 import re
 
-
-
 class Agent:
     
     def __init__(self, agentName, modelName, usesOpenAI, agentType):
