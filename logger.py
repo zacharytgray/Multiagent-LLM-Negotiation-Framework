@@ -12,7 +12,7 @@ def setupLogger(logFilename="negotiation.csv"):
     logsFilePath = os.path.join(logsFolder, logFilename)
     
     if not os.path.exists(logsFilePath):
-        with open(logFilename, mode='w', newline='') as file:
+        with open(logsFilePath, mode='w', newline='') as file:
             writer = csv.writer(file)
             # Define the header
             header = ["RoundNumber", "NegotiationTime", "Agent1Utility", "Agent2Utility", "NumIterations", "Agent1Items", "Agent2Items", "Items"]
