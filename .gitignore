@@ -39,3 +39,5 @@ coverage.xml
 *.pyo
 
 .DS_Store
+
+*_*_*-*-*_*:*:*.csv
