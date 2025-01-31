@@ -37,8 +37,8 @@ class Agent:
         # Set the instructions file based on the model type
         if self.agentType == "default":
             self.instructionsFilename = "SystemInstructions/defaultCollaborativeInstructions.txt"
-        elif self.agentType == "boulware":
-            self.instructionsFilename = "SystemInstructions/boulwareAgentInstructions.txt"
+        elif self.modelName.lower().startswith("deepseek"):
+            self.instructionsFilename = "SystemInstructions/deepseekCollaborativeInstructions.txt"
         
     def loadSystemInstructions(self):
         try:

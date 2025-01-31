@@ -4,12 +4,8 @@ import datetime
     
 def main():
     
-    # TODO: Add deepseek support
-    # TODO: Store logs in Logs folder
-    # TODO: Change .log to csv files
-    
     #Test Parameters
-    numRounds = 1
+    numRounds = 3
     numTasks = 6
     maxIterations = 32
     
@@ -31,7 +27,7 @@ def main():
     log(logFilename, "Agent1Model", agent1Model) 
     log(logFilename, "Agent2Model", agent2Model) 
 
-    negotiationStartTime = datetime.datetime.now()
+    negotiationStartTime = datetime.datetime.now().replace(microsecond=0)
     # Run the negotiation rounds
     for roundIndex in range(1, numRounds + 1):
         n = Negotiation(roundIndex, numTasks, maxIterations, agent1Model, agent1usesOpenAI, agent1Type, agent2Model, agent2usesOpenAI, agent2Type, agent1Name, agent2Name)
@@ -45,9 +41,10 @@ def main():
             n.winningProposal.agent2Tasks, 
             n.tasks,)
         logTuple(logFilename, dataTuple)
-    totalNegotiationTime = datetime.datetime.now() - negotiationStartTime
+    totalNegotiationTime = datetime.datetime.now().replace(microsecond=0) - negotiationStartTime
+    averageTimePerRound = datetime.timedelta(seconds=(totalNegotiationTime.total_seconds() / numRounds))
     log(logFilename, "TotalNegotiationTime", totalNegotiationTime)
-    log(logFilename, "AverageTimePerRound", totalNegotiationTime / numRounds)
+    log(logFilename, "AverageTimePerRound", averageTimePerRound)
     
 def constructLogFilename(agent1Model, agent2Model):
     sanitizedAgent1Model = ''.join(filter(str.isalnum, agent1Model))

@@ -14,4 +14,4 @@ class Task:
         self.confidence2 = psrMapping[pref2] # Map the preference to a more human-readable format
 
     def __repr__(self):
-        return f"{self.mappedName} ({self.pref1}, {self.pref2})"
+        return f"{self.name} ({self.pref1}, {self.pref2})"

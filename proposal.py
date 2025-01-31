@@ -7,6 +7,7 @@ class Proposal:
         self.numTasks = len(agent1Tasks) + len(agent2Tasks)
         self.agent1Utility = sum([task.pref1 for task in agent1Tasks])
         self.agent2Utility = sum([task.pref2 for task in agent2Tasks])
+        self.totalUtility = self.agent1Utility + self.agent2Utility
             
     def validateProposal(self, tasks): # Check if the proposal is valid (returns True if valid)
         if self.numTasks > len(tasks):

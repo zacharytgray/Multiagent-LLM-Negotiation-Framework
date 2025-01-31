@@ -56,7 +56,7 @@ class Negotiation:
         return tasks
     
     def startNegotiation(self):
-        negotiationStartTime = datetime.datetime.now()
+        negotiationStartTime = datetime.datetime.now().replace(microsecond=0)
         print(f"\n{Fore.GREEN}Round {self.roundIndex} started{Fore.RESET}")
         startingAgent = random.choice([self.agent1, self.agent2]) # Randomly select the starting agent
 
@@ -122,7 +122,7 @@ class Negotiation:
             currentInput = currentResponse
             self.numIterations += 1
         
-        negotiationEndTime = datetime.datetime.now()
+        negotiationEndTime = datetime.datetime.now().replace(microsecond=0)
         self.negotiationTime = negotiationEndTime - negotiationStartTime
         self.winningProposal = self.findMostRecentProposal(currentAgent)
             
