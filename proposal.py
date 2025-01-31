@@ -10,12 +10,12 @@ class Proposal:
             
     def validateProposal(self, tasks): # Check if the proposal is valid (returns True if valid)
         if self.numTasks > len(tasks):
-            return NegotiationFlag.TOO_MANY_ITEMS
+            return NegotiationFlag.TOO_MANY_TASKS
         if self.numTasks < len(tasks):
-            return NegotiationFlag.NOT_ENOUGH_ITEMS
+            return NegotiationFlag.NOT_ENOUGH_TASKS
         for task in tasks:
             if task not in self.agent1Tasks and task not in self.agent2Tasks: # Check if all tasks are in the proposal
-                return NegotiationFlag.INVALID_ITEMS_PRESENT
+                return NegotiationFlag.INVALID_TASKS_PRESENT
         return NegotiationFlag.ERROR_FREE
     
     def __repr__(self):
