@@ -5,17 +5,17 @@ import datetime
 def main():
     
     #Test Parameters
-    numRounds = 100
+    numRounds = 5
     numTasks = 6
     maxIterations = 32
     
     agent1Name = "Finn"
-    agent1Model = "deepseek-r1:32b"
+    agent1Model = "gemma2"
     agent1usesOpenAI = False
     agent1Type = "default"
     
     agent2Name = "Jake"
-    agent2Model = "deepseek-r1:32b"
+    agent2Model = "gemma2"
     agent2usesOpenAI = False
     agent2Type = "default"
     

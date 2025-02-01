@@ -64,13 +64,15 @@ class Agent:
     def generateResponse(self, role, inputText):
         self.addToChatHistory(role, inputText)
         systemMessage = """
-        IMPORTANT: If you want to make a proposal, you must use the "PROPOSAL:" keyword exactly as follows with no exceptions or additional punctuation:
+        **VERY IMPORTANT SYSTEM MESSAGE**:
+        REMEMBER! If you want to make a proposal, you must use the "PROPOSAL:" keyword exactly as follows with no exceptions or additional punctuation:
         
         PROPOSAL:
         Your Name: task1, task2, task3, ...
         Opponent's Name: task4, task5, task6, ...
         
-        IMPORTANT: If you're ready to finalize a deal, you must both say "DEAL!" consecutively. Do not use "DEAL!" in any other context.
+        REMEMBER! If you're ready to finalize a deal, you must both say "DEAL!" consecutively. Do not use "DEAL!" in any other context.
+        **END SYSTEM MESSAGE**
         """
         inputText += "\n" + systemMessage
         history = ChatPromptTemplate.from_messages(self.memory)
