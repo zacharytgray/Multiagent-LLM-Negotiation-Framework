@@ -8,6 +8,7 @@ def main():
     numRounds = 5
     numTasks = 6
     maxIterations = 32
+    hasInitialAllocation = True
     
     agent1Name = "Finn"
     agent1Model = "gemma2"
@@ -30,7 +31,18 @@ def main():
     negotiationStartTime = datetime.datetime.now().replace(microsecond=0)
     # Run the negotiation rounds
     for roundIndex in range(1, numRounds + 1):
-        n = Negotiation(roundIndex, numTasks, maxIterations, agent1Model, agent1usesOpenAI, agent1Type, agent2Model, agent2usesOpenAI, agent2Type, agent1Name, agent2Name)
+        n = Negotiation(roundIndex, 
+                        numTasks, 
+                        maxIterations, 
+                        agent1Model, 
+                        agent1usesOpenAI, 
+                        agent1Type, 
+                        agent2Model, 
+                        agent2usesOpenAI, 
+                        agent2Type, 
+                        agent1Name, 
+                        agent2Name, 
+                        hasInitialAllocation)
         n.startNegotiation()
         dataTuple = (n.roundIndex, 
             n.negotiationTime,
@@ -39,7 +51,14 @@ def main():
             n.numIterations,   
             n.winningProposal.agent1Tasks, 
             n.winningProposal.agent2Tasks, 
-            n.tasks,)
+            n.tasks,
+            n.hasInitialProposal,
+            n.agent1.usesOpenAI,
+            n.agent2.usesOpenAI,
+            n.agent1.modelName,
+            n.agent2.modelName,
+            n.agent1.agentType,
+            n.agent2.agentType)
         logTuple(logFilename, dataTuple)
     totalNegotiationTime = datetime.datetime.now().replace(microsecond=0) - negotiationStartTime
     averageTimePerRound = datetime.timedelta(seconds=(totalNegotiationTime.total_seconds() / numRounds))

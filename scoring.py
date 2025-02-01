@@ -55,6 +55,13 @@ class scoringEngine:
                     agent1Tasks = self.parseTasks(row[5])
                     agent2Tasks = self.parseTasks(row[6])
                     tasks = self.parseTasks(row[7])
+                    hasInitialProposal = row[8].strip().lower() == 'true'
+                    agent1UsesOpenAI = row[9].strip().lower() == 'true'
+                    agent2UsesOpenAI = row[10].strip().lower() == 'true'
+                    agent1ModelName = row[11]
+                    agent2ModelName = row[12]
+                    agent1Type = row[13]
+                    agent2Type = row[14]
                     
                     roundData = {
                         'roundNumber': roundNumber,
@@ -64,7 +71,14 @@ class scoringEngine:
                         'numIterations': numIterations,
                         'agent1Tasks': agent1Tasks,
                         'agent2Tasks': agent2Tasks,
-                        'tasks': tasks
+                        'tasks': tasks,
+                        'hasInitialProposal': hasInitialProposal,
+                        'agent1UsesOpenAI': agent1UsesOpenAI,
+                        'agent2UsesOpenAI': agent2UsesOpenAI,
+                        'agent1ModelName': agent1ModelName,
+                        'agent2ModelName': agent2ModelName,
+                        'agent1Type': agent1Type,
+                        'agent2Type': agent2Type
                     }
                     self.rounds.append(roundData)
         
@@ -198,7 +212,7 @@ if __name__ == "__main__":
     se = scoringEngine("gemma2_gemma2_2025-01-31_21:21:15.csv")
     se.parseLog()
     
-    roundNum  = 5
+    roundNum  = 1
     round1Tasks = se.rounds[roundNum-1]['tasks']
     round1Agent1Tasks = se.rounds[roundNum-1]['agent1Tasks']
     round1Agent2Tasks = se.rounds[roundNum-1]['agent2Tasks']
