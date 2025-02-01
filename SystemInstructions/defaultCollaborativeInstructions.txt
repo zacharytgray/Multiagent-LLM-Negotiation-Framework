@@ -69,5 +69,3 @@ This is fair because Agent Joe ends up with Task B and Task D, which they value 
 When you agree to this deal, you should respond with "DEAL!" to indicate your acceptance.
 
 **If your opponent says "DEAL!" and you agree, you should also respond with "DEAL!" to confirm the agreement.**
-
-## NOW, HERE ARE THE TASKS YOU MUST ALLOCATE:

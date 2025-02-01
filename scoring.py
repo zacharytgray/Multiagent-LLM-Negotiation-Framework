@@ -8,15 +8,6 @@ from task import Task
 class scoringEngine:
     def __init__(self, logFilename):        
         self.rounds = [] # List of rounds, set in parseLog
-        # Each round is a dict with keys: 
-            # {roundNumber, 
-            # negotiationTime, 
-            # agent1Utility, 
-            # agent2Utility, 
-            # numIterations, 
-            # agent1Tasks, 
-            # agent2Tasks, 
-            # tasks}
         self.numTasks = None # Number of tasks, set in parseLog
         self.agent1Model = None # Agent 1 model, set in parseLog
         self.agent2Model = None # Agent 2 model, set in parseLog
@@ -55,13 +46,14 @@ class scoringEngine:
                     agent1Tasks = self.parseTasks(row[5])
                     agent2Tasks = self.parseTasks(row[6])
                     tasks = self.parseTasks(row[7])
-                    hasInitialProposal = row[8].strip().lower() == 'true'
+                    initialProposal = self.parseProposal(row[8]) # input tuple: [agent1Tasks, agent2Tasks]
                     agent1UsesOpenAI = row[9].strip().lower() == 'true'
                     agent2UsesOpenAI = row[10].strip().lower() == 'true'
                     agent1ModelName = row[11]
                     agent2ModelName = row[12]
                     agent1Type = row[13]
                     agent2Type = row[14]
+                    hasDNF = row[15].strip().lower() == 'true'
                     
                     roundData = {
                         'roundNumber': roundNumber,
@@ -72,13 +64,14 @@ class scoringEngine:
                         'agent1Tasks': agent1Tasks,
                         'agent2Tasks': agent2Tasks,
                         'tasks': tasks,
-                        'hasInitialProposal': hasInitialProposal,
+                        'initialProposal': initialProposal,
                         'agent1UsesOpenAI': agent1UsesOpenAI,
                         'agent2UsesOpenAI': agent2UsesOpenAI,
                         'agent1ModelName': agent1ModelName,
                         'agent2ModelName': agent2ModelName,
                         'agent1Type': agent1Type,
-                        'agent2Type': agent2Type
+                        'agent2Type': agent2Type,
+                        'hasDNF': hasDNF
                     }
                     self.rounds.append(roundData)
         
@@ -101,6 +94,35 @@ class scoringEngine:
             pref1, pref2 = prefs.strip(")").split(", ")
             parsedTasks.append(Task(name, float(pref1), float(pref2)))
         return parsedTasks    
+    def parseProposal(self, proposalStr): # Parse proposal string into proposal object
+        """
+        Parse a string representation of a proposal into a Proposal object.
+        The proposal string is expected in the following format:
+        "([Task C (0.1, 0.9), Task D (0.8, 0.4), Task F (0.2, 0.6)], [Task A (0.5, 0.7), Task B (0.6, 0.2), Task E (0.5, 0.3)])"
+        """
+        # Remove outer parentheses if present.
+        proposalStr = proposalStr.strip("()")
+        
+        # Split the string into two parts by the delimiter "], "
+        parts = proposalStr.split("], ")
+        if len(parts) != 2:
+            raise ValueError("Invalid proposal format.")
+        
+        # Ensure the first part ends with a closing bracket.
+        agent1TasksStr = parts[0].strip()
+        if not agent1TasksStr.endswith("]"):
+            agent1TasksStr += "]"
+        
+        # Ensure the second part starts with an opening bracket.
+        agent2TasksStr = parts[1].strip()
+        if not agent2TasksStr.startswith("["):
+            agent2TasksStr = "[" + agent2TasksStr
+        
+        # Parse the tasks using the parseTasks method.
+        agent1Tasks = self.parseTasks(agent1TasksStr)
+        agent2Tasks = self.parseTasks(agent2TasksStr)
+        
+        return Proposal(agent1Tasks, agent2Tasks)
     def parseDuration(self, timeStr): # Parse duration string into timedelta
         """
         Parse a time string in the format H:M:S.microseconds into a timedelta object.
@@ -132,7 +154,7 @@ class scoringEngine:
                 break          
     def getAllPossibleAllocations(self, roundTasks): # Get all possible allocations for a given round
         """
-        Param: roundItems: List of all items in a round
+        Param: roundTasks: List of all tasks in a round
         Return a list of all possible Proposals, sorted by higher overall utility to lowest
         """
         possibleAllocations = [] 
@@ -146,8 +168,8 @@ class scoringEngine:
         possibleAllocations.sort(key=lambda proposal: proposal.totalUtility, reverse=True)
         return possibleAllocations
     
-    def getGroupedRankedAllocations(self, roundItems): # Get all possible allocations for a given round, where ties are grouped
-        allAllocations = self.getAllPossibleAllocations(roundItems)
+    def getGroupedRankedAllocations(self, roundTasks): # Get all possible allocations for a given round, where ties are grouped
+        allAllocations = self.getAllPossibleAllocations(roundTasks)
         groupedRanking = {}
         
         groupIndex = 0
@@ -171,11 +193,11 @@ class scoringEngine:
             for proposal in groupedRankedAllocations[groupIndex]:
                 print(f"Total Utility: {proposal.totalUtility}")
     
-    def isOptimalAllocation(self, proposal, roundItems): # Check if a given proposal is optimal
-        return self.getAllocationRank(proposal, roundItems) == 1
+    def isOptimalAllocation(self, proposal, roundTasks): # Check if a given proposal is optimal
+        return self.getAllocationRank(proposal, roundTasks) == 1
 
-    def getAllocationRank(self, proposal, roundItems): # Get the rank of a given allocation out of all possible allocations (1st is best)
-        groupedRanking = self.getGroupedRankedAllocations(roundItems) # all Allocations is a dictionary of index:[proposal1, proposal2, ...]
+    def getAllocationRank(self, proposal, roundTasks): # Get the rank of a given allocation out of all possible allocations (1st is best)
+        groupedRanking = self.getGroupedRankedAllocations(roundTasks) # all Allocations is a dictionary of index:[proposal1, proposal2, ...]
         currentGroup1 = set(proposal.agent1Tasks)
         currentGroup2 = set(proposal.agent2Tasks)
         for groupIndex in sorted(groupedRanking.keys()):
@@ -209,7 +231,7 @@ class scoringEngine:
         return True
 
 if __name__ == "__main__":
-    se = scoringEngine("gemma2_gemma2_2025-01-31_21:21:15.csv")
+    se = scoringEngine("gemma2_gemma2_2025-02-01_16:53:10.csv")
     se.parseLog()
     
     roundNum  = 1

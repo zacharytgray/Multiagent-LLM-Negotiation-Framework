@@ -11,6 +11,7 @@ import copy
 class Negotiation:
     def __init__(self, roundIndex, numTasks, maxIterations, agent1Model, agent1usesOpenAI, agent1Type, agent2Model, agent2usesOpenAI, agent2Type, agent1Name, agent2Name, hasInitialProposal):
         self.roundIndex = roundIndex
+        self.DNF = False # Did Not Finish
         self.numTasks = numTasks
         self.agent1 = Agent(agentName=agent1Name, modelName=agent1Model, usesOpenAI=agent1usesOpenAI, agentType=agent1Type)
         self.agent2 = Agent(agentName=agent2Name, modelName=agent2Model, usesOpenAI=agent2usesOpenAI, agentType=agent2Type)
@@ -20,16 +21,21 @@ class Negotiation:
         self.initialProposal = None # The initial proposal, set in setUpInitialProposal()
         self.tasks = self.generateTasks(self.numTasks) # or use generateRandomTasks() for random tasks
         # self.tasks = self.generateRandomTasks(self.numTasks)
-        self.updateAgentInstructions() # Add the negotiation tasks to the agent's instructions
-        self.agent1.addToChatHistory('system', self.agent1.systemInstructions)
-        self.agent2.addToChatHistory('system', self.agent2.systemInstructions)
         self.negotiationTime = 0 # Time taken for the negotiation
         self.winningProposal = None # The winning proposal at the end of the negotiation
         
-    def updateAgentInstructions(self): # Add the negotiation tasks to the agent's instructions
+    def updateAgentInstructions(self, currentAgent): # Add the negotiation tasks to the agent's instructions
+        
+        self.agent1.systemInstructions += "\n**NOW, HERE ARE THE ACTUAL ITEMS YOU MUST ALLOCATE:**\n"
+        self.agent2.systemInstructions += "\n**NOW, HERE ARE THE ACTUAL ITEMS YOU MUST ALLOCATE:**\n"
         for task in self.tasks:
             self.agent1.systemInstructions += f"{task.mappedName}: Your confidence level for this task is {task.confidence1}.\n"
             self.agent2.systemInstructions += f"{task.mappedName}: Your confidence level for this task is {task.confidence2}.\n"
+        
+        if self.hasInitialProposal:
+            combinedTaskStr = self.setUpInitialProposal(currentAgent)
+            currentAgent.systemInstructions += f"\n\n**VERY IMPORTANT!** You should start by formally proposing (with the 'PROPOSAL:' keyword) the following initial allocation: {combinedTaskStr}.\n"
+            print(f"{Fore.YELLOW}Initial Proposal: {combinedTaskStr}{Fore.RESET}")
         
     def setUpInitialProposal(self, currentAgent):
         shuffledTasks = copy.deepcopy(self.tasks)
@@ -37,9 +43,8 @@ class Negotiation:
         agent1Tasks = shuffledTasks[:self.numTasks//2]
         agent2Tasks = shuffledTasks[self.numTasks//2:self.numTasks]
         self.initialProposal = Proposal(agent1Tasks, agent2Tasks)
-        combinedTasksStr = f"\n{self.agent1.agentName}: {', '.join([task.mappedName for task in agent1Tasks])}\n{self.agent2.agentName}: {', '.join([task.mappedName for task in agent2Tasks])}"
-        currentAgent.systemInstructions += f"IMPORTANT! You should start by formally proposing (with the 'PROPOSAL:' keyword) the following initial allocation: {combinedTasksStr}.\n"
-        print(f"{Fore.YELLOW}Initial Proposal: {combinedTasksStr}{Fore.RESET}")
+        combinedTaskStr = f"\n{self.agent1.agentName}: {', '.join([task.mappedName for task in agent1Tasks])}\n{self.agent2.agentName}: {', '.join([task.mappedName for task in agent2Tasks])}"
+        return combinedTaskStr
         
     def generateTasks(self, numTasks):
         baseTasks = [
@@ -78,6 +83,10 @@ class Negotiation:
         if self.hasInitialProposal:
             self.setUpInitialProposal(currentAgent)
             
+        self.updateAgentInstructions(currentAgent) # Add the negotiation tasks to the agent's instructions
+        self.agent1.addToChatHistory('system', self.agent1.systemInstructions)
+        self.agent2.addToChatHistory('system', self.agent2.systemInstructions)
+            
         currentInput = f"Hello, I am {otherAgent.agentName}. Let's begin the task negotiation. Please start the negotiation process."
         agreementReached = False
         dealCounter = 0
@@ -99,7 +108,7 @@ class Negotiation:
                             # if we want an initial allocation and it's the first round and proposal does not match initial proposal,
                             # reprompt agent for proposal, matching the initial proposal this time.
                             print(f"{Fore.RED}Invalid proposal: Does Not Match Initial Proposal{Fore.RESET}")
-                            helperMessage = f"IMPORTANT: You made an incorrect proposal. Just this once, you must propose the given initial proposal with the 'PROPSAL:' keyword. Remember, the initial proposal is:\n{self.agent1.agentName}: {', '.join([task.mappedName for task in self.initialProposal.agent1Tasks])}\n{self.agent2.agentName}: {', '.join([task.mappedName for task in self.initialProposal.agent2Tasks])}\nTry Again"
+                            helperMessage = f"IMPORTANT: YOU ENTERED AN INVALID PROPOSAL. Just this once, you must propose the given initial proposal with the 'PROPSAL:' keyword. Remember, the initial proposal is:\n{self.agent1.agentName}: {', '.join([task.mappedName for task in self.initialProposal.agent1Tasks])}\n{self.agent2.agentName}: {', '.join([task.mappedName for task in self.initialProposal.agent2Tasks])}\nTry Again"
                             currentAgent.addToChatHistory('system', helperMessage)  
                     else:  
                         isValidProposal = potentialProposal.validateProposal(self.tasks)
@@ -139,6 +148,12 @@ class Negotiation:
                         print(f"{Fore.RED}Retrying... ({retries}/{maxRetries} retries){Fore.RESET}")
                     else:
                         break
+                    
+            # check for DNF
+            if retries >= maxRetries:
+                print(f"{Fore.RED}Negotiation Did Not Finish{Fore.RESET}")
+                self.DNF = True
+                break
             
             if "DEAL!" in currentResponse: # Check if the agent has accepted the proposal
                 dealCounter += 1
@@ -222,3 +237,13 @@ class Negotiation:
             if (isinstance(message, AIMessage) 
                 or isinstance(message, HumanMessage)) and "PROPOSAL:" in message.content:
                 return self.extractProposalFromReponse(message.content)
+    def printAgentMemory(self, agent):
+        for message in agent.memory:
+            if isinstance(message, SystemMessage):
+                print(f"{Fore.BLUE}System: {message.content}{Fore.RESET}")
+            elif isinstance(message, HumanMessage):
+                print(f"{Fore.GREEN}User: {message.content}{Fore.RESET}")
+            elif isinstance(message, AIMessage):
+                print(f"{Fore.CYAN}AI: {message.content}{Fore.RESET}")
+            else:
+                print(f"Unknown message type: {message}")

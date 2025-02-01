@@ -15,7 +15,7 @@ def setupLogger(logFilename="negotiation.csv"):
         with open(logsFilePath, mode='w', newline='') as file:
             writer = csv.writer(file)
             # Define the header
-            header = ["RoundNumber", "NegotiationTime", "Agent1Utility", "Agent2Utility", "NumIterations", "Agent1Items", "Agent2Items", "Items"]
+            header = ["RoundNumber", "NegotiationTime", "Agent1Utility", "Agent2Utility", "NumIterations", "Agent1Items", "Agent2Items", "Items", "InitialProposal", "Agent1UsesOpenAI", "Agent2UsesOpenAI", "Agent1Model", "Agent2Model", "Agent1Type", "Agent2Type", "DNF"]
             writer.writerow(header)
             
 def logTuple(logFilename, dataTuple):

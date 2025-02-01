@@ -79,4 +79,3 @@ Final Note
 Remember: Every proposal you make must end with the correctly formatted proposal block starting with PROPOSAL:. Any deviation may lead to misinterpretation or rejection of your proposal.
 
 ------------------------------------------------
-NOW, HERE ARE THE TASKS YOU MUST ALLOCATE:

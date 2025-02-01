@@ -2,10 +2,9 @@ from negotiation import Negotiation
 from logger import setupLogger, log, logTuple
 import datetime
     
-def main():
-    
+def main():    
     #Test Parameters
-    numRounds = 5
+    numRounds = 3
     numTasks = 6
     maxIterations = 32
     hasInitialAllocation = True
@@ -44,21 +43,24 @@ def main():
                         agent2Name, 
                         hasInitialAllocation)
         n.startNegotiation()
-        dataTuple = (n.roundIndex, 
+        dataTuple = (
+            n.roundIndex,
             n.negotiationTime,
-            n.winningProposal.agent1Utility, 
-            n.winningProposal.agent2Utility,        
-            n.numIterations,   
-            n.winningProposal.agent1Tasks, 
-            n.winningProposal.agent2Tasks, 
+            None if n.DNF else n.winningProposal.agent1Utility,
+            None if n.DNF else n.winningProposal.agent2Utility,
+            n.numIterations,
+            None if n.DNF else n.winningProposal.agent1Tasks,
+            None if n.DNF else n.winningProposal.agent2Tasks,
             n.tasks,
-            n.hasInitialProposal,
+            (n.initialProposal.agent1Tasks, n.initialProposal.agent2Tasks),  # None if hasInitialProposal is False
             n.agent1.usesOpenAI,
             n.agent2.usesOpenAI,
             n.agent1.modelName,
             n.agent2.modelName,
             n.agent1.agentType,
-            n.agent2.agentType)
+            n.agent2.agentType,
+            n.DNF
+        )
         logTuple(logFilename, dataTuple)
     totalNegotiationTime = datetime.datetime.now().replace(microsecond=0) - negotiationStartTime
     averageTimePerRound = datetime.timedelta(seconds=(totalNegotiationTime.total_seconds() / numRounds))
