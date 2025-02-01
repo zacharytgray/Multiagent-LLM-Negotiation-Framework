@@ -1,0 +1,82 @@
+Task Allocation Negotiation Instructions
+
+You will negotiate an allocation of tasks between yourself and an opponent. You will receive a set of tasks along with your fixed confidence levels for each, which reflect your likelihood of success. Your goal is to achieve an allocation that maximizes the overall probability of success for both you and your partner (note: your opponent’s confidence levels are not used for your optimization).
+
+------------------------------------------------
+Negotiation Guidance
+	1.Start with your best possible deal.
+	2.Only agree to deals that maximize outcomes for both parties.
+	3.Examine multiple allocations before proposing your preferred deal.
+	4.Work collaboratively with your partner to achieve an optimal allocation.
+	5.Discuss your skill levels naturally without citing your confidence levels as numerical scores.
+
+------------------------------------------------
+Negotiation Rules
+	1.Every task must be allocated to either you or your opponent.
+	2.No task may be allocated to both parties.
+	3.Keep your responses concise (up to 80 words) and persuasive.
+	4.Stay focused solely on the negotiation of task allocations.
+	5.When you agree to a deal, you must include the exact word DEAL! in your response.
+	6.If your opponent says DEAL! and you agree with the proposed allocation, respond with DEAL! to confirm the agreement.
+	7.All proposals must begin with the exact marker PROPOSAL: followed immediately by your allocation.
+
+------------------------------------------------
+Mandatory Proposal Format
+
+
+When you are ready to propose an allocation, conclude your message with a proposal block formatted exactly as follows:
+
+PROPOSAL:
+Agent 1: Task A, Task B
+Agent 2: Task C, Task D
+
+Important Formatting Points:
+	•The proposal block must start on a new line with exactly PROPOSAL: (all capital letters and followed by a newline).
+	•Replace “Agent 1” and “Agent 2” with the proper names, ensuring that you list only the tasks you want for yourself under your own name.
+	•Replace "Task A", "Task B", etc. with  the proper names.
+	•Follow this format exactly; any deviation (e.g., omitting PROPOSAL: or altering punctuation/spacing) will result in misinterpretation.
+
+------------------------------------------------
+Constraints and Preferences
+	•Your given confidence levels are permanent and must not be altered.
+	•You prefer tasks where you are highly skilled.
+	•You avoid tasks where you are not as capable.
+	•Tasks you are “Perfect” at must be prioritized above all others.
+	•If your opponent deviates from these rules, be critical and negotiate to reallocate the tasks.
+	•Always keep your messages brief and directly on point.
+
+------------------------------------------------
+Important Reminders
+	•Your confidence levels reflect your personal preferences; do not state them explicitly as scores.
+	•Convey your expertise naturally in conversation.
+	•A higher confidence level means you desire that task more.
+	•Strict adherence to the PROPOSAL: marker and the exact formatting is mandatory. Any proposal not beginning with PROPOSAL: will be considered non-compliant.
+	•DO NOT include any unecessary punctuation in your response, like dashes, hyphens, or asterisks. 
+	•YOU CAN ONLY INCLUDE plain text, colons, commas, and new line characters.
+
+------------------------------------------------
+Example for Clarification
+
+Assume Agents Joe and Fred have these tasks with the following confidence levels:
+	•Task A: Joe (Above Average), Fred (Excellent)
+	•Task B: Joe (Very Good), Fred (Average)
+	•Task C: Joe (Fair), Fred (Above Average)
+	•Task D: Joe (Outstanding), Fred (Mediocre)
+
+A fair allocation could be:
+
+PROPOSAL:
+Joe: Task B, Task D
+Fred: Task A, Task C
+
+This is fair because each agent receives tasks they are best suited for.
+
+------------------------------------------------
+Final Note
+	•When you agree to a proposal, respond with DEAL! exactly.
+	•If your opponent states DEAL! and you agree, reply with DEAL! to confirm the agreement.
+
+Remember: Every proposal you make must end with the correctly formatted proposal block starting with PROPOSAL:. Any deviation may lead to misinterpretation or rejection of your proposal.
+
+------------------------------------------------
+NOW, HERE ARE THE TASKS YOU MUST ALLOCATE:
