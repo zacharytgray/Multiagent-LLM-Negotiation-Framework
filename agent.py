@@ -30,9 +30,9 @@ class Agent:
             self.openaiApiKey = os.getenv("OPENAI_API_KEY")
             if self.openaiApiKey is None:
                 raise ValueError("OpenAI API key is not found")
-            self.model = ChatOpenAI(model_name=self.modelName, openai_api_key=self.openaiApiKey) 
+            self.model = ChatOpenAI(model_name=self.modelName, openai_api_key=self.openaiApiKey, temperature=0.3) 
         else:
-            self.model = ChatOllama(model=self.modelName, base_url="http://localhost:11434")
+            self.model = ChatOllama(model=self.modelName, base_url="http://localhost:11434", temperature=0.3)
             
         # Set the instructions file based on the model type
         if self.agentType == "default":
