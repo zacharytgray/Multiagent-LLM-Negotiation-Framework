@@ -151,7 +151,7 @@ def isParetoOptimal(allocation, allAllocations):
     """
     return True
 
-se = scoringEngine("gemma2latest_gemma2latest_2025-01-31_14:23:09.csv")
+se = scoringEngine("deepseekr132b_deepseekr132b_2025-01-31_17:37:46.csv")
 se.parseLog()
 round1Tasks = se.rounds[0]['tasks']
 allAllocations = se.getAllPossibleAllocations(round1Tasks)

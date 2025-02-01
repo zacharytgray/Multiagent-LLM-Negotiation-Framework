@@ -68,7 +68,7 @@ class Negotiation:
         # print tasks for this negotiation
         print("Tasks for this negotiation:")
         for task in self.tasks:
-            print(task)
+            print(f"{task.mappedName}: {task.confidence1}, {task.confidence2}")
         
         while not agreementReached and self.numIterations < self.maxIterations:
             maxRetries = 5

@@ -37,8 +37,10 @@ class Agent:
         # Set the instructions file based on the model type
         if self.agentType == "default":
             self.instructionsFilename = "SystemInstructions/defaultCollaborativeInstructions.txt"
-        elif self.modelName.lower().startswith("deepseek"):
-            self.instructionsFilename = "SystemInstructions/deepseekCollaborativeInstructions.txt"
+            
+        if self.modelName.lower().startswith("deepseek"):
+            print(f"{Fore.YELLOW}Using DeepSeek instructions{Fore.RESET}")
+            self.instructionsFilename = "SystemInstructions/deepseekCollaborativeInstructionsGPT.txt"
         
     def loadSystemInstructions(self):
         try:
@@ -61,16 +63,26 @@ class Agent:
         
     def generateResponse(self, role, inputText):
         self.addToChatHistory(role, inputText)
+        systemMessage = """
+        IMPORTANT: If you want to make a proposal, you must use the "PROPOSAL:" keyword exactly as follows with no exceptions or additional punctuation:
+        
+        PROPOSAL:
+        Your Name: task1, task2, task3, ...
+        Opponent's Name: task4, task5, task6, ...
+        
+        IMPORTANT: If you're ready to finalize a deal, you must both say "DEAL!" consecutively. Do not use "DEAL!" in any other context.
+        """
+        inputText += "\n" + systemMessage
         history = ChatPromptTemplate.from_messages(self.memory)
         chain = history | self.model
         response = chain.invoke({})
         response_content = response.content if isinstance(response, AIMessage) else response
         
-        # TODO: If self.modelName.lower() starts with "deepseek", remove from where it says "<think>" at the start of its response to when it says </think> (inclusive). Keep everything after that.
         if self.modelName.lower().startswith("deepseek"):
             pattern = r"<think>.*?</think>"
             response_content = re.sub(pattern, "", response_content, flags=re.DOTALL)
-        response_content = response_content.replace('*', '')
+        response_content = response_content.replace('*', '') # Remove asterisks
+        response_content = response_content.replace('- ', '') # Remove bullets
         self.addToChatHistory('assistant', response_content)
         return response_content.strip()
     
