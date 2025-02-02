@@ -3,8 +3,8 @@ from logger import setupLogger, log, logTuple
 import datetime
     
 def main():    
-    #TODO: Currently trying to fix bug where negotiations keep DNFing
     #TODO: Trying to get deepseek model to obey instructions
+    # TODO: Handle case for INVALID_PROPOSAL_FORMAT
     
     #Test Parameters
     numRounds = 1
@@ -13,12 +13,12 @@ def main():
     hasInitialProposal = False
     
     agent1Name = "Finn"
-    agent1Model = "deepseek-r1:32b"
+    agent1Model = "gemma2:latest"
     agent1usesOpenAI = False
     agent1Type = "default"
     
     agent2Name = "Jake"
-    agent2Model = "deepseek-r1:32b"
+    agent2Model = "gemma2:latest"
     agent2usesOpenAI = False
     agent2Type = "default"
     

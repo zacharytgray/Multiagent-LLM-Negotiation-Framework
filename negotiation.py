@@ -7,6 +7,7 @@ from langchain.schema import AIMessage, HumanMessage, SystemMessage
 import random
 import datetime
 import copy
+import ast
 
 class Negotiation:
     def __init__(self, roundIndex, numTasks, maxIterations, agent1Model, agent1usesOpenAI, agent1Type, agent2Model, agent2usesOpenAI, agent2Type, agent1Name, agent2Name, hasInitialProposal):
@@ -36,6 +37,8 @@ class Negotiation:
             combinedTaskStr = self.setUpInitialProposal(currentAgent)
             currentAgent.systemInstructions += f"\n\n**VERY IMPORTANT!** You should start by formally proposing (with the 'PROPOSAL:' keyword) the following initial allocation: {combinedTaskStr}.\n"
             print(f"{Fore.YELLOW}Initial Proposal: {combinedTaskStr}{Fore.RESET}")
+        self.agent1.systemInstructions = self.agent1.systemInstructions.replace("[my_name]", self.agent1.agentName).replace("[opponent_name]", self.agent2.agentName)
+        self.agent2.systemInstructions = self.agent2.systemInstructions.replace("[my_name]", self.agent2.agentName).replace("[opponent_name]", self.agent1.agentName)
         
     def setUpInitialProposal(self, currentAgent):
         shuffledTasks = copy.deepcopy(self.tasks)
@@ -103,7 +106,7 @@ class Negotiation:
                 # if retries > 0:
                 #     currentAgent.printMemory()
                 currentResponse = currentAgent.generateResponse('user', currentInput)
-                potentialProposal = self.extractProposalFromReponse(currentResponse)
+                potentialProposal, hasDeal = self.extractProposalFromReponse(currentResponse)
                 if potentialProposal != NegotiationFlag.PROPOSAL_NOT_FOUND: # If proposal is found, check if it is valid
                     if (self.hasInitialProposal and self.numIterations == 0) \
                         and not self.doesProposalMatchInitialProposal(potentialProposal): 
@@ -112,6 +115,8 @@ class Negotiation:
                             print(f"{Fore.RED}Invalid proposal: Does Not Match Initial Proposal{Fore.RESET}")
                             helperMessage = f"IMPORTANT: YOU ENTERED AN INVALID PROPOSAL. Just this once, you must propose the given initial proposal with the 'PROPSAL:' keyword. Remember, the initial proposal is:\n{self.agent1.agentName}: {', '.join([task.mappedName for task in self.initialProposal.agent1Tasks])}\n{self.agent2.agentName}: {', '.join([task.mappedName for task in self.initialProposal.agent2Tasks])}\nTry Again"
                             currentAgent.addToChatHistory('system', helperMessage)  
+                            retries += 1
+                            print(f"{Fore.RED}Retrying... ({retries}/{maxRetries} retries){Fore.RESET}")
                     else:  
                         isValidProposal = potentialProposal.validateProposal(self.tasks)
                         if isValidProposal == NegotiationFlag.ERROR_FREE: # If proposal is valid, update the current agent's proposal
@@ -140,6 +145,19 @@ class Negotiation:
                                 print(f"{Fore.RED}Proposal that caused error: \n{potentialProposal}{Fore.RESET}")   
                     retries += 1
                     print(f"{Fore.RED}Retrying... ({retries}/{maxRetries} retries){Fore.RESET}")
+                elif potentialProposal == NegotiationFlag.INVALID_PROPOSAL_FORMAT:
+                    print(f"{Fore.RED}Invalid proposal: Invalid Proposal Format{Fore.RESET}")
+                    helperMessage = f"""IMPORTANT: You must use the following JSON format with NO exceptions:
+                    formal_proposal = {{
+                        '{currentAgent.agentName}_items': ['Task A', 'Task B'],
+                        '{otherAgent.agentName}_items': ['Task C', 'Task D'],
+                        'has_deal': 'True'
+                    }}
+                    Replace the alphabetized task names with the actual task names you want to propose.
+                    \nTry Again"""
+                    currentAgent.addToChatHistory('system', helperMessage)
+                    retries += 1
+                    print(f"{Fore.RED}Retrying... ({retries}/{maxRetries} retries){Fore.RESET}")
                 else: # If proposal is not found, check if one is required 
                     # Agents are allowed to not have a proposal if initial allocation is not required
                     if (self.hasInitialProposal and self.numIterations == 0): # if we need an initial allocation in the first round
@@ -157,7 +175,7 @@ class Negotiation:
                 self.DNF = True
                 break
             
-            if "DEAL!" in currentResponse: # Check if the agent has accepted the proposal
+            if hasDeal: # Check if the agent has accepted the proposal
                 dealCounter += 1
                 if dealCounter == 2:
                     agreementReached = True
@@ -166,8 +184,8 @@ class Negotiation:
 
             print(f"\n{Fore.CYAN}{currentAgent.agentName}:{Fore.RESET}\n{currentResponse}")
             
-            print(f"\n\n{currentAgent.agentName}'s Memory:\n")
-            currentAgent.printMemory()
+            # print(f"\n\n{currentAgent.agentName}'s Memory:\n")
+            # currentAgent.printMemory()
             
             # Prepare for the next iteration
             currentAgent, otherAgent = otherAgent, currentAgent # Switch agents
@@ -180,7 +198,7 @@ class Negotiation:
         
         negotiationEndTime = datetime.datetime.now().replace(microsecond=0)
         self.negotiationTime = negotiationEndTime - negotiationStartTime
-        self.winningProposal = self.findMostRecentProposal(currentAgent)
+        self.winningProposal, deal = self.findMostRecentProposal(currentAgent)
         
     def doesProposalMatchInitialProposal(self, proposal):
         """
@@ -195,35 +213,57 @@ class Negotiation:
     def extractProposalFromReponse(self, response):
         """
         Extracts a Proposal object from a response string. Assumes the response
-        contains a proposal in the format:
-        
-        PROPOSAL:
-        Agent 1: Task W, Task X
-        Agent 2: Task Y, Task Z
-
-        There can be any number of tasks listed for each agent.
+        contains a proposal in the new formal format:
+                
+        formal_proposal = {
+            "Joe": ["Running", "Fishing"],
+            "Fred": ["Hiking", "Cycling"],
+            "has_deal": "True"
+        }
         """
-        lines = response.strip().split("\n")
-        
-        # Look for "PROPOSAL:" keyword
-        proposalStartIndex = None
-        for i, line in enumerate(lines):
-            if line.strip().startswith("PROPOSAL:"):
-                proposalStartIndex = i
-                break
-        if proposalStartIndex is None:  # If keyword wasn't found, return None
+
+        # Look for the new formal proposal keyword
+        if "formal_proposal" not in response:
             return NegotiationFlag.PROPOSAL_NOT_FOUND
-        
-        proposalLines = lines[proposalStartIndex + 1:]  # Extract proposal lines
+
+        # Extract the dictionary part from the response
+        # Extract exactly the 5 lines of the proposal, starting from the line with the opening curly brace
+        lines = response.splitlines()
+        proposal_str = ""
+        for i, line in enumerate(lines):
+            if "formal_proposal" in line:
+                proposal_str = "\n".join(lines[i:i+5])
+                break
+            
+        try:
+            dict_start = proposal_str.index('{')
+            dict_end = proposal_str.rindex('}')
+            dict_substring = proposal_str[dict_start:dict_end + 1]
+            proposal_dict = ast.literal_eval(dict_substring) # ex: proposal_dict= {'Finn_items': ['Painting', 'Puzzle'], 'Jake_items': ['Chess', 'Piano', 'Gardening', 'Guitar'], 'has_deal': 'False'}
+        except Exception:
+            return NegotiationFlag.INVALID_PROPOSAL_FORMAT
+
         agent1Tasks = []
         agent2Tasks = []
-        for line in proposalLines:
-            if line.startswith(self.agent1.agentName):
-                agent1Tasks = self.extractTasksFromLine(line)
-            elif line.startswith(self.agent2.agentName):
-                agent2Tasks = self.extractTasksFromLine(line)
-        
-        return Proposal(agent1Tasks, agent2Tasks)
+
+        # Extract tasks for agent1 if present
+        agent1Key = self.agent1.agentName + "_items"
+        if agent1Key in proposal_dict:
+            for taskName in proposal_dict[agent1Key]:
+                task = self.convertTaskNameToTask(taskName)
+                agent1Tasks.append(task)
+
+        agent2Key = self.agent2.agentName + "_items"
+        # Extract tasks for agent2 if present
+        if agent2Key in proposal_dict:
+            for taskName in proposal_dict[agent2Key]:
+                task = self.convertTaskNameToTask(taskName)
+                agent2Tasks.append(task)
+
+        # Extract has_deal boolean
+        has_deal = proposal_dict.get('has_deal', 'False').lower() == 'true'
+
+        return Proposal(agent1Tasks, agent2Tasks), has_deal
     
     def extractTasksFromLine(self, line):
         tasks = []        
@@ -240,11 +280,26 @@ class Negotiation:
                 return task
         return Task(name=taskName, pref1=0.0, pref2=0.0) # Return a dummy task if the task name is not found
     
+    # def findMostRecentProposal(self, currentAgent):
+    #     # Traverse the currentAgent's memory in reverse order to find the most recent proposal
+    #     for message in reversed(currentAgent.memory):
+    #         if (isinstance(message, AIMessage) or isinstance(message, HumanMessage)) \
+    #         and 'formal_proposal' in message.content:
+    #             return self.extractProposalFromReponse(message.content)
+    #     # If no proposal was found, return None or raise an error.
+    #     print("Warning: No recent proposal found in agent memory.")
+    #     return None
     def findMostRecentProposal(self, currentAgent):
-        # TODO: Traverse the currentAgent's memory in reverse order to find the most recent proposal
+        # Debug: print out all message contents in memory
+        for i, message in enumerate(currentAgent.memory):
+            print(f"[DEBUG] Message {i}: {message.content}")
+        
+        # Traverse the memory in reverse
         for message in reversed(currentAgent.memory):
-            if (isinstance(message, AIMessage) 
-                or isinstance(message, HumanMessage)) and "PROPOSAL:" in message.content:
+            if (isinstance(message, AIMessage) or isinstance(message, HumanMessage)) \
+            and 'formal_proposal' in message.content:
                 return self.extractProposalFromReponse(message.content)
-    
-    
+        print("Warning: No recent proposal found in agent memory.")
+        return None
+        
+        

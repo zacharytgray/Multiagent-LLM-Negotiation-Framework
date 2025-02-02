@@ -7,3 +7,4 @@ class NegotiationFlag(Enum):
     TOO_MANY_TASKS = "Too many tasks in proposal"
     INVALID_TASKS_PRESENT = "Invalid tasks present in proposal"
     ERROR_FREE = "No errors found"
+    INVALID_PROPOSAL_FORMAT = "Invalid proposal format"

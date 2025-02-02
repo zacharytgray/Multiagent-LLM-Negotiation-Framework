@@ -19,8 +19,7 @@ class Agent:
         self.memory = []
         self.model = None
         self.proposal = None
-        self.systemInstructions = f"Your name is {self.agentName}. You are a collaborative agent. "
-        self.setUpModel()
+        self.systemInstructions = f"Your name is {self.agentName}. You are a collaborative agent."
         self.setUpModel()
         self.loadSystemInstructions()
 
@@ -35,12 +34,13 @@ class Agent:
             self.model = ChatOllama(model=self.modelName, base_url="http://localhost:11434", temperature=0.3)
             
         # Set the instructions file based on the model type
-        if self.agentType == "default":
-            self.instructionsFilename = "SystemInstructions/defaultCollaborativeInstructions.txt"
+        # if self.agentType == "default":
+        #     self.instructionsFilename = "SystemInstructions/defaultCollaborativeInstructions.txt"
             
-        if self.modelName.lower().startswith("deepseek"):
-            print(f"{Fore.YELLOW}Using DeepSeek instructions{Fore.RESET}")
-            self.instructionsFilename = "SystemInstructions/deepseekCollaborativeInstructionsGPT.txt"
+        # if self.modelName.lower().startswith("deepseek"):
+        #     print(f"{Fore.YELLOW}Using DeepSeek instructions{Fore.RESET}")
+        #     self.instructionsFilename = "SystemInstructions/deepseekCollaborativeInstructions.txt"
+        self.instructionsFilename = "SystemInstructions/deepseekCollaborativeInstructions_JSON.txt"
         
     def loadSystemInstructions(self): # Load system instructions from file
         try:
