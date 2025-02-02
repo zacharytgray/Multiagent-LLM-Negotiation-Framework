@@ -100,6 +100,8 @@ class Negotiation:
             maxRetries = 5
             retries = 0
             while retries < maxRetries: # Keep retrying if the proposal is invalid
+                if retries > 0:
+                    currentAgent.printMemory()
                 currentResponse = currentAgent.generateResponse('user', currentInput)
                 potentialProposal = self.extractProposalFromReponse(currentResponse)
                 if potentialProposal != NegotiationFlag.PROPOSAL_NOT_FOUND: # If proposal is found, check if it is valid
@@ -151,7 +153,7 @@ class Negotiation:
                     
             # check for DNF
             if retries >= maxRetries:
-                print(f"{Fore.RED}Negotiation Did Not Finish{Fore.RESET}")
+                print(f"{Fore.RED}Negotiation Did Not Finish: {currentAgent.agentName} could not produce a valid proposal.{Fore.RESET}")
                 self.DNF = True
                 break
             
@@ -168,6 +170,10 @@ class Negotiation:
             currentAgent, otherAgent = otherAgent, currentAgent # Switch agents
             currentInput = currentResponse
             self.numIterations += 1
+        
+        if self.maxIterations == self.numIterations:
+            print(f"{Fore.RED}Negotiation Did Not Finish: Max Iterations Reached{Fore.RESET}")
+            self.DNF = True
         
         negotiationEndTime = datetime.datetime.now().replace(microsecond=0)
         self.negotiationTime = negotiationEndTime - negotiationStartTime
@@ -237,13 +243,5 @@ class Negotiation:
             if (isinstance(message, AIMessage) 
                 or isinstance(message, HumanMessage)) and "PROPOSAL:" in message.content:
                 return self.extractProposalFromReponse(message.content)
-    def printAgentMemory(self, agent):
-        for message in agent.memory:
-            if isinstance(message, SystemMessage):
-                print(f"{Fore.BLUE}System: {message.content}{Fore.RESET}")
-            elif isinstance(message, HumanMessage):
-                print(f"{Fore.GREEN}User: {message.content}{Fore.RESET}")
-            elif isinstance(message, AIMessage):
-                print(f"{Fore.CYAN}AI: {message.content}{Fore.RESET}")
-            else:
-                print(f"Unknown message type: {message}")
+    
+    

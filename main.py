@@ -3,11 +3,14 @@ from logger import setupLogger, log, logTuple
 import datetime
     
 def main():    
+    #TODO: Currently trying to fix bug where negotiations keep DNFing
+    #TODO: Trying to get deepseek model to obey instructions
+    
     #Test Parameters
     numRounds = 3
     numTasks = 6
     maxIterations = 32
-    hasInitialAllocation = True
+    hasInitialProposal = False
     
     agent1Name = "Finn"
     agent1Model = "gemma2"
@@ -41,7 +44,7 @@ def main():
                         agent2Type, 
                         agent1Name, 
                         agent2Name, 
-                        hasInitialAllocation)
+                        hasInitialProposal)
         n.startNegotiation()
         dataTuple = (
             n.roundIndex,
@@ -52,7 +55,7 @@ def main():
             None if n.DNF else n.winningProposal.agent1Tasks,
             None if n.DNF else n.winningProposal.agent2Tasks,
             n.tasks,
-            (n.initialProposal.agent1Tasks, n.initialProposal.agent2Tasks),  # None if hasInitialProposal is False
+            (n.initialProposal.agent1Tasks, n.initialProposal.agent2Tasks) if n.hasInitialProposal else None,  # None if hasInitialProposal is False
             n.agent1.usesOpenAI,
             n.agent2.usesOpenAI,
             n.agent1.modelName,

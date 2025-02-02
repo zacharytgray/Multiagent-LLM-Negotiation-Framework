@@ -89,3 +89,13 @@ class Agent:
         self.addToChatHistory('assistant', response_content)
         return response_content.strip()
     
+    def printMemory(self):
+        for message in self.memory:
+            if isinstance(message, SystemMessage):
+                print(f"{Fore.LIGHTRED_EX}System: {message.content}{Fore.RESET}")
+            elif isinstance(message, HumanMessage):
+                print(f"{Fore.LIGHTGREEN_EX}Opponent: {message.content}{Fore.RESET}")
+            elif isinstance(message, AIMessage):
+                print(f"{Fore.LIGHTBLUE_EX}{self.agentName}: {message.content}{Fore.RESET}")
+            else:
+                print(f"Unknown message type: {message}")
