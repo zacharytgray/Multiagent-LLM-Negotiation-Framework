@@ -100,8 +100,8 @@ class Negotiation:
             maxRetries = 5
             retries = 0
             while retries < maxRetries: # Keep retrying if the proposal is invalid
-                if retries > 0:
-                    currentAgent.printMemory()
+                # if retries > 0:
+                #     currentAgent.printMemory()
                 currentResponse = currentAgent.generateResponse('user', currentInput)
                 potentialProposal = self.extractProposalFromReponse(currentResponse)
                 if potentialProposal != NegotiationFlag.PROPOSAL_NOT_FOUND: # If proposal is found, check if it is valid
@@ -119,7 +119,7 @@ class Negotiation:
                             break # Exit the retry loop when a valid proposal is found
                         else: # If proposal is invalid, prompt the agent to correct it
                             # Remove the last incorrect response from the memory
-                            currentAgent.memory = currentAgent.memory[:-2]
+                            # currentAgent.memory = currentAgent.memory[:-1]
                             if isValidProposal == NegotiationFlag.NOT_ENOUGH_TASKS:
                                 # reprompt agent for proposal, including all tasks this time.
                                 print(f"{Fore.RED}Invalid proposal: Not Enough Tasks{Fore.RESET}")
@@ -165,6 +165,9 @@ class Negotiation:
                 dealCounter = 0
 
             print(f"\n{Fore.CYAN}{currentAgent.agentName}:{Fore.RESET}\n{currentResponse}")
+            
+            print(f"\n\n{currentAgent.agentName}'s Memory:\n")
+            currentAgent.printMemory()
             
             # Prepare for the next iteration
             currentAgent, otherAgent = otherAgent, currentAgent # Switch agents

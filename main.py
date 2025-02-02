@@ -7,18 +7,18 @@ def main():
     #TODO: Trying to get deepseek model to obey instructions
     
     #Test Parameters
-    numRounds = 3
+    numRounds = 1
     numTasks = 6
     maxIterations = 32
     hasInitialProposal = False
     
     agent1Name = "Finn"
-    agent1Model = "gemma2"
+    agent1Model = "deepseek-r1:32b"
     agent1usesOpenAI = False
     agent1Type = "default"
     
     agent2Name = "Jake"
-    agent2Model = "gemma2"
+    agent2Model = "deepseek-r1:32b"
     agent2usesOpenAI = False
     agent2Type = "default"
     
