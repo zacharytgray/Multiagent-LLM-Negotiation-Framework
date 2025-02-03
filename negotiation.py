@@ -34,13 +34,22 @@ class Negotiation:
             self.agent2.systemInstructions += f"{task.mappedName}: Your confidence level for this task is {task.confidence2}.\n"
         
         if self.hasInitialProposal:
-            combinedTaskStr = self.setUpInitialProposal(currentAgent)
-            currentAgent.systemInstructions += f"\n\n**VERY IMPORTANT!** You should start by formally proposing (with the 'PROPOSAL:' keyword) the following initial allocation: {combinedTaskStr}.\n"
-            print(f"{Fore.YELLOW}Initial Proposal: {combinedTaskStr}{Fore.RESET}")
+            combinedTaskStr = self.setUpInitialProposal()
+            currentAgent.systemInstructions += f"""
+\n\n**VERY IMPORTANT!** 
+FOR THIS ROUND ONLY, You should start by formally proposing the following initial allocation using the JSON format with the 'formal_proposal' keyword:
+formal_proposal = {{
+    '{self.agent1.agentName}_items': [{', '.join([f'"{task.mappedName}"' for task in self.initialProposal.agent1Tasks])}],
+    '{self.agent2.agentName}_items': [{', '.join([f'"{task.mappedName}"' for task in self.initialProposal.agent2Tasks])}],
+    'has_deal': 'False'
+}}\n
+COPY THIS ALLOCATION EXACTLY, ESPECIALLY TASK ASSIGNMENTS, AND DO NOT CHANGE ANYTHING ELSE.
+"""
+            print(f"{Fore.YELLOW}Initial Proposal in updateAgentInstructions: {combinedTaskStr}{Fore.RESET}")
         self.agent1.systemInstructions = self.agent1.systemInstructions.replace("[my_name]", self.agent1.agentName).replace("[opponent_name]", self.agent2.agentName)
         self.agent2.systemInstructions = self.agent2.systemInstructions.replace("[my_name]", self.agent2.agentName).replace("[opponent_name]", self.agent1.agentName)
         
-    def setUpInitialProposal(self, currentAgent):
+    def setUpInitialProposal(self):
         shuffledTasks = copy.deepcopy(self.tasks)
         random.shuffle(shuffledTasks)
         agent1Tasks = shuffledTasks[:self.numTasks//2]
@@ -82,13 +91,11 @@ class Negotiation:
         startingAgent = random.choice([self.agent1, self.agent2]) # Randomly select the starting agent
 
         currentAgent, otherAgent = (self.agent1, self.agent2) if startingAgent == self.agent1 else (self.agent2, self.agent1)
-        
-        if self.hasInitialProposal:
-            self.setUpInitialProposal(currentAgent)
             
         self.updateAgentInstructions(currentAgent) # Add the negotiation tasks to the agent's instructions
         self.agent1.addToChatHistory('system', self.agent1.systemInstructions)
         self.agent2.addToChatHistory('system', self.agent2.systemInstructions)
+        print(f"initial proposal: {self.initialProposal}")
             
         currentInput = f"Hello, I am {otherAgent.agentName}. Let's begin the task negotiation. Please start the negotiation process."
         agreementReached = False
@@ -106,7 +113,7 @@ class Negotiation:
                 # if retries > 0:
                 #     currentAgent.printMemory()
                 currentResponse = currentAgent.generateResponse('user', currentInput)
-                potentialProposal, hasDeal = self.extractProposalFromReponse(currentResponse)
+                potentialProposal = self.extractProposalFromReponse(currentResponse)
                 if potentialProposal != NegotiationFlag.PROPOSAL_NOT_FOUND: # If proposal is found, check if it is valid
                     if (self.hasInitialProposal and self.numIterations == 0) \
                         and not self.doesProposalMatchInitialProposal(potentialProposal): 
@@ -115,8 +122,6 @@ class Negotiation:
                             print(f"{Fore.RED}Invalid proposal: Does Not Match Initial Proposal{Fore.RESET}")
                             helperMessage = f"IMPORTANT: YOU ENTERED AN INVALID PROPOSAL. Just this once, you must propose the given initial proposal with the 'PROPSAL:' keyword. Remember, the initial proposal is:\n{self.agent1.agentName}: {', '.join([task.mappedName for task in self.initialProposal.agent1Tasks])}\n{self.agent2.agentName}: {', '.join([task.mappedName for task in self.initialProposal.agent2Tasks])}\nTry Again"
                             currentAgent.addToChatHistory('system', helperMessage)  
-                            retries += 1
-                            print(f"{Fore.RED}Retrying... ({retries}/{maxRetries} retries){Fore.RESET}")
                     else:  
                         isValidProposal = potentialProposal.validateProposal(self.tasks)
                         if isValidProposal == NegotiationFlag.ERROR_FREE: # If proposal is valid, update the current agent's proposal
@@ -175,7 +180,7 @@ class Negotiation:
                 self.DNF = True
                 break
             
-            if hasDeal: # Check if the agent has accepted the proposal
+            if potentialProposal.hasDeal: # Check if the agent has accepted the proposal
                 dealCounter += 1
                 if dealCounter == 2:
                     agreementReached = True
@@ -198,7 +203,7 @@ class Negotiation:
         
         negotiationEndTime = datetime.datetime.now().replace(microsecond=0)
         self.negotiationTime = negotiationEndTime - negotiationStartTime
-        self.winningProposal, deal = self.findMostRecentProposal(currentAgent)
+        self.winningProposal = self.findMostRecentProposal(currentAgent)
         
     def doesProposalMatchInitialProposal(self, proposal):
         """
@@ -263,7 +268,7 @@ class Negotiation:
         # Extract has_deal boolean
         has_deal = proposal_dict.get('has_deal', 'False').lower() == 'true'
 
-        return Proposal(agent1Tasks, agent2Tasks), has_deal
+        return Proposal(agent1Tasks, agent2Tasks, has_deal)
     
     def extractTasksFromLine(self, line):
         tasks = []        
@@ -280,26 +285,14 @@ class Negotiation:
                 return task
         return Task(name=taskName, pref1=0.0, pref2=0.0) # Return a dummy task if the task name is not found
     
-    # def findMostRecentProposal(self, currentAgent):
-    #     # Traverse the currentAgent's memory in reverse order to find the most recent proposal
-    #     for message in reversed(currentAgent.memory):
-    #         if (isinstance(message, AIMessage) or isinstance(message, HumanMessage)) \
-    #         and 'formal_proposal' in message.content:
-    #             return self.extractProposalFromReponse(message.content)
-    #     # If no proposal was found, return None or raise an error.
-    #     print("Warning: No recent proposal found in agent memory.")
-    #     return None
     def findMostRecentProposal(self, currentAgent):
-        # Debug: print out all message contents in memory
-        for i, message in enumerate(currentAgent.memory):
-            print(f"[DEBUG] Message {i}: {message.content}")
-        
-        # Traverse the memory in reverse
+        # Traverse the currentAgent's memory in reverse order to find the most recent proposal
         for message in reversed(currentAgent.memory):
             if (isinstance(message, AIMessage) or isinstance(message, HumanMessage)) \
             and 'formal_proposal' in message.content:
                 return self.extractProposalFromReponse(message.content)
+        # If no proposal was found, return None or raise an error.
         print("Warning: No recent proposal found in agent memory.")
         return None
-        
+
         

@@ -2,15 +2,16 @@ from negotiation import Negotiation
 from logger import setupLogger, log, logTuple
 import datetime
     
-def main():    
-    #TODO: Trying to get deepseek model to obey instructions
-    # TODO: Handle case for INVALID_PROPOSAL_FORMAT
+def main():        
+    #TODO: Current problem where if hasInitialProposal is True, it retries all 5 times without fail.
+    # to fix this, need to add debug prints and see where the mismatch is happening. print initialproposal and compare to the current print statement
+    #--> they aren't getting the system prompt to use the generated initial proposal
     
     #Test Parameters
     numRounds = 1
     numTasks = 6
     maxIterations = 32
-    hasInitialProposal = False
+    hasInitialProposal = True
     
     agent1Name = "Finn"
     agent1Model = "gemma2:latest"
