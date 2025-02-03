@@ -45,7 +45,6 @@ formal_proposal = {{
 }}\n
 COPY THIS ALLOCATION EXACTLY, ESPECIALLY TASK ASSIGNMENTS, AND DO NOT CHANGE ANYTHING ELSE.
 """
-            print(f"{Fore.YELLOW}Initial Proposal in updateAgentInstructions: {combinedTaskStr}{Fore.RESET}")
         self.agent1.systemInstructions = self.agent1.systemInstructions.replace("[my_name]", self.agent1.agentName).replace("[opponent_name]", self.agent2.agentName)
         self.agent2.systemInstructions = self.agent2.systemInstructions.replace("[my_name]", self.agent2.agentName).replace("[opponent_name]", self.agent1.agentName)
         
