@@ -20,6 +20,12 @@ class Task:
     
     def __hash__(self):
         return hash((self.name, round(self.pref1, 7), round(self.pref2, 7)))
+    
+    # def getItemString(self):
+    #     return f"{self.mappedName} ({self.pref1}, {self.pref2})"
 
+    # def __repr__(self):
+    #     return f"{self.name} ({self.pref1}, {self.pref2})"
+    
     def __repr__(self):
-        return f"{self.name} ({self.pref1}, {self.pref2})"
+        return f"{self.mappedName} ({self.pref1}, {self.pref2})"

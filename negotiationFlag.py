@@ -8,3 +8,4 @@ class NegotiationFlag(Enum):
     INVALID_TASKS_PRESENT = "Invalid tasks present in proposal"
     ERROR_FREE = "No errors found"
     INVALID_PROPOSAL_FORMAT = "Invalid proposal format"
+    INVALID_AGENT_NAME = "Invalid agent name in proposal"

@@ -3,9 +3,7 @@ from logger import setupLogger, log, logTuple
 import datetime
     
 def main():        
-    #TODO: Current problem where if hasInitialProposal is True, it retries all 5 times without fail.
-    # to fix this, need to add debug prints and see where the mismatch is happening. print initialproposal and compare to the current print statement
-    #--> they aren't getting the system prompt to use the generated initial proposal
+    # TODO: Debug agent memory not trimming the last two after errors. 
     
     #Test Parameters
     numRounds = 1
@@ -14,12 +12,12 @@ def main():
     hasInitialProposal = True
     
     agent1Name = "Finn"
-    agent1Model = "gemma2:latest"
+    agent1Model = "deepseek-r1:32b"
     agent1usesOpenAI = False
     agent1Type = "default"
     
     agent2Name = "Jake"
-    agent2Model = "gemma2:latest"
+    agent2Model = "deepseek-r1:32b"
     agent2usesOpenAI = False
     agent2Type = "default"
     

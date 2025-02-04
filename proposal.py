@@ -20,5 +20,8 @@ class Proposal:
                 return NegotiationFlag.INVALID_TASKS_PRESENT
         return NegotiationFlag.ERROR_FREE
     
+    def printStringProposal(self):
+        return f"Agent 1 Tasks: {self.agent1Tasks}\nAgent 2 Tasks: {self.agent2Tasks}\nHas Deal: {self.hasDeal}\n"
+    
     def __repr__(self):
         return f"Agent 1 Tasks: {self.agent1Tasks}\nAgent 2 Tasks: {self.agent2Tasks}\nHas Deal: {self.hasDeal}\n"

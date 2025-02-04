@@ -4,10 +4,12 @@ from colorama import Fore
 from proposal import Proposal
 from negotiationFlag import NegotiationFlag
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
+from langchain.prompts import ChatPromptTemplate
 import random
 import datetime
 import copy
 import ast
+import re
 
 class Negotiation:
     def __init__(self, roundIndex, numTasks, maxIterations, agent1Model, agent1usesOpenAI, agent1Type, agent2Model, agent2usesOpenAI, agent2Type, agent1Name, agent2Name, hasInitialProposal):
@@ -20,42 +22,37 @@ class Negotiation:
         self.maxIterations = maxIterations
         self.hasInitialProposal = hasInitialProposal
         self.initialProposal = None # The initial proposal, set in setUpInitialProposal()
-        self.tasks = self.generateTasks(self.numTasks) # or use generateRandomTasks() for random tasks
-        # self.tasks = self.generateRandomTasks(self.numTasks)
+        # self.tasks = self.generateTasks(self.numTasks) # or use generateRandomTasks() for random tasks
+        self.tasks = self.generateRandomTasks(self.numTasks)
         self.negotiationTime = 0 # Time taken for the negotiation
         self.winningProposal = None # The winning proposal at the end of the negotiation
+        self.formattingReminder = self.setFormattingReminder() # Initiate the formatting reminder
+        self.proposalFormatExample = None # Initiate the proposal formatting example
+        self.missingProposalWarning = f"""\n\n**WARNING: MISSING PROPOSAL**
+The proposal was missing from the response. This is not allowed. Make sure to include a proposal in your next response.\n\n{self.formattingReminder}""" # Initiate the missing proposal warning
         
-    def updateAgentInstructions(self, currentAgent): # Add the negotiation tasks to the agent's instructions
-        
+    def updateAgentInstructions(self, currentAgent, otherAgent): # Add the negotiation tasks to the agent's instructions
         self.agent1.systemInstructions += "\n**NOW, HERE ARE THE ACTUAL ITEMS YOU MUST ALLOCATE:**\n"
         self.agent2.systemInstructions += "\n**NOW, HERE ARE THE ACTUAL ITEMS YOU MUST ALLOCATE:**\n"
         for task in self.tasks:
             self.agent1.systemInstructions += f"{task.mappedName}: Your confidence level for this task is {task.confidence1}.\n"
             self.agent2.systemInstructions += f"{task.mappedName}: Your confidence level for this task is {task.confidence2}.\n"
         
-        if self.hasInitialProposal:
-            combinedTaskStr = self.setUpInitialProposal()
-            currentAgent.systemInstructions += f"""
-\n\n**VERY IMPORTANT!** 
-FOR THIS ROUND ONLY, You should start by formally proposing the following initial allocation using the JSON format with the 'formal_proposal' keyword:
-formal_proposal = {{
-    '{self.agent1.agentName}_items': [{', '.join([f'"{task.mappedName}"' for task in self.initialProposal.agent1Tasks])}],
-    '{self.agent2.agentName}_items': [{', '.join([f'"{task.mappedName}"' for task in self.initialProposal.agent2Tasks])}],
-    'has_deal': 'False'
-}}\n
-COPY THIS ALLOCATION EXACTLY, ESPECIALLY TASK ASSIGNMENTS, AND DO NOT CHANGE ANYTHING ELSE.
-"""
-        self.agent1.systemInstructions = self.agent1.systemInstructions.replace("[my_name]", self.agent1.agentName).replace("[opponent_name]", self.agent2.agentName)
-        self.agent2.systemInstructions = self.agent2.systemInstructions.replace("[my_name]", self.agent2.agentName).replace("[opponent_name]", self.agent1.agentName)
+        # Replace agent names in system instructions 
+        self.agent1.systemInstructions = self.agent1.systemInstructions.replace("[my_name]", self.agent1.agentName).replace("[partner_name]", self.agent2.agentName)
+        self.agent2.systemInstructions = self.agent2.systemInstructions.replace("[my_name]", self.agent2.agentName).replace("[partner_name]", self.agent1.agentName)
         
-    def setUpInitialProposal(self):
+        # Replace agent names and items in initial proposal helper instructions
+        if self.hasInitialProposal:
+            self.agent1.initialProposalHelperInstructions = self.agent1.initialProposalHelperInstructions.replace("[my_name]", self.agent1.agentName).replace("[partner_name]", self.agent2.agentName).replace("[myTasks]", ", ".join([f'"{task.mappedName}"' for task in self.initialProposal.agent1Tasks])).replace("[partnerTasks]", ", ".join([f'"{task.mappedName}"' for task in self.initialProposal.agent2Tasks]))
+            self.agent2.initialProposalHelperInstructions = self.agent2.initialProposalHelperInstructions.replace("[my_name]", self.agent2.agentName).replace("[partner_name]", self.agent1.agentName).replace("[myTasks]", ", ".join([f'"{task.mappedName}"' for task in self.initialProposal.agent2Tasks])).replace("[partnerTasks]", ", ".join([f'"{task.mappedName}"' for task in self.initialProposal.agent1Tasks]))
+            
+    def setUpInitialProposal(self): # Randomly assign tasks to each agent
         shuffledTasks = copy.deepcopy(self.tasks)
         random.shuffle(shuffledTasks)
         agent1Tasks = shuffledTasks[:self.numTasks//2]
         agent2Tasks = shuffledTasks[self.numTasks//2:self.numTasks]
         self.initialProposal = Proposal(agent1Tasks, agent2Tasks)
-        combinedTaskStr = f"\n{self.agent1.agentName}: {', '.join([task.mappedName for task in agent1Tasks])}\n{self.agent2.agentName}: {', '.join([task.mappedName for task in agent2Tasks])}"
-        return combinedTaskStr
         
     def generateTasks(self, numTasks):
         baseTasks = [
@@ -90,8 +87,10 @@ COPY THIS ALLOCATION EXACTLY, ESPECIALLY TASK ASSIGNMENTS, AND DO NOT CHANGE ANY
         startingAgent = random.choice([self.agent1, self.agent2]) # Randomly select the starting agent
 
         currentAgent, otherAgent = (self.agent1, self.agent2) if startingAgent == self.agent1 else (self.agent2, self.agent1)
-            
-        self.updateAgentInstructions(currentAgent) # Add the negotiation tasks to the agent's instructions
+        
+        self.setUpInitialProposal() # Set up the self.initialProposal
+        self.proposalFormatExample = self.setProposalFormattingExample() # Set up the proposal formatting example
+        self.updateAgentInstructions(currentAgent, otherAgent) # Add the negotiation tasks to the agent's instructions
         self.agent1.addToChatHistory('system', self.agent1.systemInstructions)
         self.agent2.addToChatHistory('system', self.agent2.systemInstructions)
         print(f"initial proposal: {self.initialProposal}")
@@ -104,23 +103,42 @@ COPY THIS ALLOCATION EXACTLY, ESPECIALLY TASK ASSIGNMENTS, AND DO NOT CHANGE ANY
         print("Tasks for this negotiation:")
         for task in self.tasks:
             print(f"{task.mappedName}: {task.confidence1}, {task.confidence2}")
-        
+            
         while not agreementReached and self.numIterations < self.maxIterations:
             maxRetries = 5
             retries = 0
+            
+            if retries > 0:
+                if len(currentAgent.memory) >= 2:
+                    currentAgent.memory = currentAgent.memory[:-2]
+            
+            if self.numIterations <= 1 and self.hasInitialProposal:
+                self.updateAgentInitialInstructions(currentAgent, otherAgent) # Update the agent's instructions for the current iteration
             while retries < maxRetries: # Keep retrying if the proposal is invalid
-                # if retries > 0:
-                #     currentAgent.printMemory()
+                if retries > 0:
+                    currentAgent.printMemory()
+
                 currentResponse = currentAgent.generateResponse('user', currentInput)
                 potentialProposal = self.extractProposalFromReponse(currentResponse)
-                if potentialProposal != NegotiationFlag.PROPOSAL_NOT_FOUND: # If proposal is found, check if it is valid
-                    if (self.hasInitialProposal and self.numIterations == 0) \
-                        and not self.doesProposalMatchInitialProposal(potentialProposal): 
-                            # if we want an initial allocation and it's the first round and proposal does not match initial proposal,
-                            # reprompt agent for proposal, matching the initial proposal this time.
-                            print(f"{Fore.RED}Invalid proposal: Does Not Match Initial Proposal{Fore.RESET}")
-                            helperMessage = f"IMPORTANT: YOU ENTERED AN INVALID PROPOSAL. Just this once, you must propose the given initial proposal with the 'PROPSAL:' keyword. Remember, the initial proposal is:\n{self.agent1.agentName}: {', '.join([task.mappedName for task in self.initialProposal.agent1Tasks])}\n{self.agent2.agentName}: {', '.join([task.mappedName for task in self.initialProposal.agent2Tasks])}\nTry Again"
-                            currentAgent.addToChatHistory('system', helperMessage)  
+                if potentialProposal != NegotiationFlag.PROPOSAL_NOT_FOUND \
+                    and potentialProposal != NegotiationFlag.INVALID_PROPOSAL_FORMAT \
+                        and potentialProposal != NegotiationFlag.INVALID_AGENT_NAME: # If proposal is found, check if it is valid
+                    if (self.numIterations == 0): 
+                        if self.hasInitialProposal: 
+                            if not self.doesProposalMatchInitialProposal(potentialProposal):
+                                # if we want an initial allocation and it's the first round and proposal does not match initial proposal,
+                                # reprompt agent for proposal, matching the initial proposal this time.
+                                print(f"{Fore.RED}Invalid proposal: Does Not Match Initial Proposal{Fore.RESET}")
+                                helperMessage = self.setHelperMessage()
+                                currentAgent.addToChatHistory('system', helperMessage) 
+                            else:
+                                currentAgent.proposal = potentialProposal
+                                break
+                        elif potentialProposal.hasDeal:
+                            print(f"{Fore.RED}Invalid proposal: Initial Proposal Cannot Be Accepted{Fore.RESET}")
+                            helperMessage = f"IMPORTANT: YOU ENTERED AN INVALID PROPOSAL. You are not allowed to agree to the initial proposal (set 'has_deal' to 'False').\nTry Again"
+                            helperMessage += self.formattingReminder
+                            currentAgent.addToChatHistory('system', helperMessage)
                     else:  
                         isValidProposal = potentialProposal.validateProposal(self.tasks)
                         if isValidProposal == NegotiationFlag.ERROR_FREE: # If proposal is valid, update the current agent's proposal
@@ -128,21 +146,23 @@ COPY THIS ALLOCATION EXACTLY, ESPECIALLY TASK ASSIGNMENTS, AND DO NOT CHANGE ANY
                             break # Exit the retry loop when a valid proposal is found
                         else: # If proposal is invalid, prompt the agent to correct it
                             # Remove the last incorrect response from the memory
-                            # currentAgent.memory = currentAgent.memory[:-1]
                             if isValidProposal == NegotiationFlag.NOT_ENOUGH_TASKS:
                                 # reprompt agent for proposal, including all tasks this time.
                                 print(f"{Fore.RED}Invalid proposal: Not Enough Tasks{Fore.RESET}")
                                 helperMessage = f"IMPORTANT: You must include all {len(self.tasks)} tasks in your proposal. Remember, these are the tasks for this negotiation: {', '.join([task.mappedName for task in self.tasks])}\nTry Again"
+                                helperMessage += self.formattingReminder
                                 currentAgent.addToChatHistory('system', helperMessage)
                             elif isValidProposal == NegotiationFlag.TOO_MANY_TASKS:
                                 # reprompt agent for proposal, including only given tasks this time.
                                 print(f"{Fore.RED}Invalid proposal: Too Many Tasks{Fore.RESET}")
                                 helperMessage = f"IMPORTANT: You must include only {len(self.tasks)} tasks in your proposal. Remember, these are the tasks for this negotiation: {', '.join([task.mappedName for task in self.tasks])}.\nTry Again"
+                                helperMessage += self.formattingReminder
                                 currentAgent.addToChatHistory('system', helperMessage)
                             elif isValidProposal == NegotiationFlag.INVALID_TASKS_PRESENT:
                                 # reprompt agent for proposal, including only given tasks this time.
                                 print(f"{Fore.RED}Invalid proposal: Invalid Tasks Present{Fore.RESET}")
                                 helperMessage = f"IMPORTANT: You must include only the following {len(self.tasks)} tasks in your proposal: {', '.join([task.mappedName for task in self.tasks])}.\nTry Again"
+                                helperMessage += self.formattingReminder
                                 currentAgent.addToChatHistory('system', helperMessage)      
                             else:
                                 print(f"{Fore.RED}Invalid proposal: Unknown Error{Fore.RESET}")   
@@ -152,13 +172,19 @@ COPY THIS ALLOCATION EXACTLY, ESPECIALLY TASK ASSIGNMENTS, AND DO NOT CHANGE ANY
                 elif potentialProposal == NegotiationFlag.INVALID_PROPOSAL_FORMAT:
                     print(f"{Fore.RED}Invalid proposal: Invalid Proposal Format{Fore.RESET}")
                     helperMessage = f"""IMPORTANT: You must use the following JSON format with NO exceptions:
-                    formal_proposal = {{
-                        '{currentAgent.agentName}_items': ['Task A', 'Task B'],
-                        '{otherAgent.agentName}_items': ['Task C', 'Task D'],
-                        'has_deal': 'True'
-                    }}
-                    Replace the alphabetized task names with the actual task names you want to propose.
-                    \nTry Again"""
+formal_proposal = {{
+    '{currentAgent.agentName}_tasks': ['Task A', 'Task B'],
+    '{otherAgent.agentName}_tasks': ['Task C', 'Task D'],
+    'has_deal': 'False'
+}}
+Replace the alphabetized task names with the actual task names you want to propose.
+\nTry Again"""
+                    currentAgent.addToChatHistory('system', helperMessage)
+                    retries += 1
+                    print(f"{Fore.RED}Retrying... ({retries}/{maxRetries} retries){Fore.RESET}")
+                elif potentialProposal == NegotiationFlag.INVALID_AGENT_NAME:
+                    print(f"{Fore.RED}Invalid proposal: Invalid Agent Name{Fore.RESET}")
+                    helperMessage = f"""IMPORTANT: You must use the following JSON format with NO exceptions, making sure to enter the agent names correctly. {self.formattingReminder}\n\nTry Again"""
                     currentAgent.addToChatHistory('system', helperMessage)
                     retries += 1
                     print(f"{Fore.RED}Retrying... ({retries}/{maxRetries} retries){Fore.RESET}")
@@ -166,12 +192,21 @@ COPY THIS ALLOCATION EXACTLY, ESPECIALLY TASK ASSIGNMENTS, AND DO NOT CHANGE ANY
                     # Agents are allowed to not have a proposal if initial allocation is not required
                     if (self.hasInitialProposal and self.numIterations == 0): # if we need an initial allocation in the first round
                         print(f"{Fore.RED}Invalid proposal: Proposal Not Found In Initial Message{Fore.RESET}")
-                        helperMessage = f"IMPORTANT: Just this once, you must propose the given initial proposal with the 'PROPSAL:' keyword. Remember, the initial proposal is:\n{self.agent1.agentName}: {', '.join([task.mappedName for task in self.initialProposal.agent1Tasks])}\n{self.agent2.agentName}: {', '.join([task.mappedName for task in self.initialProposal.agent2Tasks])}\nTry Again"
+                        helperMessage = f"""IMPORTANT: YOU ENTERED AN INVALID PROPOSAL. Just this once, you must propose the given initial proposal exactly as follows: 
+formal_proposal = {{
+    '{self.agent1.agentName}_tasks': [{', '.join([f'"{task.mappedName}"' for task in self.initialProposal.agent1Tasks])}],
+    '{self.agent2.agentName}_tasks': [{', '.join([f'"{task.mappedName}"' for task in self.initialProposal.agent2Tasks])}],
+    'has_deal': 'False'
+}}\nMAKE SURE YOU ENTER THE TASKS EXACLTY AS SHOWN.\n\nTry Again"""
                         currentAgent.addToChatHistory('system', helperMessage)
                         retries += 1
                         print(f"{Fore.RED}Retrying... ({retries}/{maxRetries} retries){Fore.RESET}")
                     else:
-                        break
+                        print(f"{Fore.RED}Invalid proposal: Proposal Not Found{Fore.RESET}")
+                        currentAgent.addToChatHistory('system', self.missingProposalWarning)
+                        retries += 1
+                        print(f"{Fore.RED}Retrying... ({retries}/{maxRetries} retries){Fore.RESET}")
+                        
                     
             # check for DNF
             if retries >= maxRetries:
@@ -179,7 +214,7 @@ COPY THIS ALLOCATION EXACTLY, ESPECIALLY TASK ASSIGNMENTS, AND DO NOT CHANGE ANY
                 self.DNF = True
                 break
             
-            if potentialProposal.hasDeal: # Check if the agent has accepted the proposal
+            if not isinstance(potentialProposal, NegotiationFlag) and potentialProposal.hasDeal: # Check if the agent has accepted the proposal
                 dealCounter += 1
                 if dealCounter == 2:
                     agreementReached = True
@@ -225,6 +260,7 @@ COPY THIS ALLOCATION EXACTLY, ESPECIALLY TASK ASSIGNMENTS, AND DO NOT CHANGE ANY
             "has_deal": "True"
         }
         """
+        invalidFormatFlag = False
 
         # Look for the new formal proposal keyword
         if "formal_proposal" not in response:
@@ -243,29 +279,38 @@ COPY THIS ALLOCATION EXACTLY, ESPECIALLY TASK ASSIGNMENTS, AND DO NOT CHANGE ANY
             dict_start = proposal_str.index('{')
             dict_end = proposal_str.rindex('}')
             dict_substring = proposal_str[dict_start:dict_end + 1]
-            proposal_dict = ast.literal_eval(dict_substring) # ex: proposal_dict= {'Finn_items': ['Painting', 'Puzzle'], 'Jake_items': ['Chess', 'Piano', 'Gardening', 'Guitar'], 'has_deal': 'False'}
+            proposal_dict = ast.literal_eval(dict_substring) # ex: proposal_dict= {'Finn_tasks': ['Painting', 'Puzzle'], 'Jake_tasks': ['Chess', 'Piano', 'Gardening', 'Guitar'], 'has_deal': 'False'}
         except Exception:
-            return NegotiationFlag.INVALID_PROPOSAL_FORMAT
+            invalidFormatFlag = True
 
         agent1Tasks = []
         agent2Tasks = []
 
         # Extract tasks for agent1 if present
-        agent1Key = self.agent1.agentName + "_items"
+        agent1Key = self.agent1.agentName + "_tasks"
         if agent1Key in proposal_dict:
             for taskName in proposal_dict[agent1Key]:
                 task = self.convertTaskNameToTask(taskName)
                 agent1Tasks.append(task)
+        else:
+            # If agent1's tasks are not present, return INVALID_AGENT_NAME
+            return NegotiationFlag.INVALID_AGENT_NAME
 
-        agent2Key = self.agent2.agentName + "_items"
+        agent2Key = self.agent2.agentName + "_tasks"
         # Extract tasks for agent2 if present
         if agent2Key in proposal_dict:
             for taskName in proposal_dict[agent2Key]:
                 task = self.convertTaskNameToTask(taskName)
                 agent2Tasks.append(task)
+        else:
+            # If agent2's tasks are not present, return INVALID_AGENT_NAME
+            return NegotiationFlag.INVALID_AGENT_NAME
 
         # Extract has_deal boolean
         has_deal = proposal_dict.get('has_deal', 'False').lower() == 'true'
+        
+        if invalidFormatFlag:
+            return NegotiationFlag.INVALID_PROPOSAL_FORMAT
 
         return Proposal(agent1Tasks, agent2Tasks, has_deal)
     
@@ -294,4 +339,53 @@ COPY THIS ALLOCATION EXACTLY, ESPECIALLY TASK ASSIGNMENTS, AND DO NOT CHANGE ANY
         print("Warning: No recent proposal found in agent memory.")
         return None
 
-        
+    def setFormattingReminder(self):
+        # initiate the formatting reminder
+        reminderStr = f"""
+\n\n**FORMATTING REMINDER** 
+To make a proposal, start by formally proposing the following initial allocation using the JSON format with the 'formal_proposal' keyword:
+
+... Text leading up to proposal ...
+formal_proposal = {{
+    '{self.agent1.agentName}_tasks': [Task A, Task B, ...],
+    '{self.agent2.agentName}_tasks': [Task C, Task D, ...],
+    'has_deal': 'False'
+    
+    Use the exact JSON format as shown above, replacing the alphabetized task names with the actual tasks you think are best. 
+    Replace 'has_deal' with 'True' if you have come to a mutual agreement on the current proposal.
+}}\n """
+        return reminderStr
+    
+    def setProposalFormattingExample(self):
+        exampleStr = f"""
+\n\n**VERY IMPORTANT!** 
+FOR THIS ROUND ONLY, You should start by formally proposing the following initial allocation using the JSON format with the 'formal_proposal' keyword:
+formal_proposal = {{
+    '{self.agent1.agentName}_tasks': [{', '.join([f'"{task.mappedName}"' for task in self.initialProposal.agent1Tasks])}],
+    '{self.agent2.agentName}_tasks': [{', '.join([f'"{task.mappedName}"' for task in self.initialProposal.agent2Tasks])}],
+    'has_deal': 'False'
+}}\n
+COPY THIS ALLOCATION EXACTLY, ESPECIALLY TASK ASSIGNMENTS, AND DO NOT CHANGE ANYTHING ELSE.
+"""
+        return exampleStr
+    
+    
+    def updateAgentInitialInstructions(self, currentAgent, otherAgent):
+        if self.numIterations == 0:
+                # set currentAgent's 0th index in currentAgent.memory to currentAgent.initialProposalHelperInstructions
+                print(f"{Fore.YELLOW}Switching  {currentAgent.agentName}'s memory to initial proposal helper instructions{Fore.RESET}")
+                currentAgent.memory[0] = SystemMessage(content=currentAgent.initialProposalHelperInstructions)
+        elif self.numIterations == 1:
+            # set currentAgent's 0th index in currentAgent.memory to currentAgent.systemInstructions
+            print(f"{Fore.YELLOW}Switching  {otherAgent.agentName}'s memory to system instructions{Fore.RESET}")
+            currentAgent.memory[0] = SystemMessage(content=currentAgent.systemInstructions)
+            
+            
+    def setHelperMessage(self):
+        helperMessage = f"""IMPORTANT: YOU ENTERED AN INVALID PROPOSAL. Just this once, you must propose the given initial proposal exactly as follows: 
+formal_proposal = {{
+    '{self.agent1.agentName}_tasks': [{', '.join([f'"{task.mappedName}"' for task in self.initialProposal.agent1Tasks])}],
+    '{self.agent2.agentName}_tasks': [{', '.join([f'"{task.mappedName}"' for task in self.initialProposal.agent2Tasks])}],
+    'has_deal': 'False'
+}}\nMAKE SURE YOU ENTER THE TASKS EXACLTY AS SHOWN.\n\nTry Again"""
+        return helperMessage

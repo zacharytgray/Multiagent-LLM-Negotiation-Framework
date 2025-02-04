@@ -19,7 +19,8 @@ class Agent:
         self.memory = []
         self.model = None
         self.proposal = None
-        self.systemInstructions = f"Your name is {self.agentName}. You are a collaborative agent."
+        self.systemInstructions = ""
+        self.initialProposalHelperInstructions = ""
         self.setUpModel()
         self.loadSystemInstructions()
 
@@ -31,7 +32,7 @@ class Agent:
                 raise ValueError("OpenAI API key is not found")
             self.model = ChatOpenAI(model_name=self.modelName, openai_api_key=self.openaiApiKey, temperature=1) 
         else:
-            self.model = ChatOllama(model=self.modelName, base_url="http://localhost:11434", temperature=0.3)
+            self.model = ChatOllama(model=self.modelName, base_url="http://localhost:11434", temperature=0.1)
             
         # Set the instructions file based on the model type
         # if self.agentType == "default":
@@ -40,15 +41,19 @@ class Agent:
         # if self.modelName.lower().startswith("deepseek"):
         #     print(f"{Fore.YELLOW}Using DeepSeek instructions{Fore.RESET}")
         #     self.instructionsFilename = "SystemInstructions/deepseekCollaborativeInstructions.txt"
-        self.instructionsFilename = "SystemInstructions/deepseekCollaborativeInstructions_JSON.txt"
+        self.instructionsFilename = "SystemInstructions/deepseekCollaborativeInstructions.txt"
+        self.initialPropHelperFname = "SystemInstructions/initialProposalHelperInstructions.txt"
         
     def loadSystemInstructions(self): # Load system instructions from file
         try:
             with open(self.instructionsFilename, 'r') as file:
                 self.systemInstructions += file.read()
+            with open(self.initialPropHelperFname, 'r') as file:
+                self.initialProposalHelperInstructions = file.read()
         except FileNotFoundError:
             print(f"{Fore.RED}Instructions file not found: {self.instructionsFilename}{Fore.RESET}")
             exit(1)
+
         
     def addToChatHistory(self, role, content):
         if role == 'system':
@@ -79,7 +84,7 @@ class Agent:
 # If you're ready to finalize a deal, you must both say "DEAL!" consecutively. Do not use the word "DEAL!" in any other context."""
 #             self.memory.append(SystemMessage(content=formatReminder))
         
-    def generateResponse(self, role, inputText):
+    def generateResponse(self, role, inputText): # Generate response based on input
         self.addToChatHistory(role, inputText)
         history = ChatPromptTemplate.from_messages(self.memory)
         chain = history | self.model
@@ -89,17 +94,26 @@ class Agent:
         if self.modelName.lower().startswith("deepseek"):
             pattern = r"<think>.*?</think>"
             response_content = re.sub(pattern, "", response_content, flags=re.DOTALL)
-        response_content = response_content.replace('*', '') # Remove asterisks
-        response_content = response_content.replace('- ', '') # Remove bullets
-        response_content = re.sub(r'(?:\n\s*){2,}', '\n', response_content)
+        self.addToChatHistory('assistant', response_content)
+        return response_content.strip()
+    
+    def generateResponseNoInput(self): # Generate response without any input
+        history = ChatPromptTemplate.from_messages(self.memory)
+        chain = history | self.model
+        response = chain.invoke({})
+        response_content = response.content if isinstance(response, AIMessage) else response
+        
+        if self.modelName.lower().startswith("deepseek"):
+            pattern = r"<think>.*?</think>"
+            response_content = re.sub(pattern, "", response_content, flags=re.DOTALL)
         self.addToChatHistory('assistant', response_content)
         return response_content.strip()
     
     def printMemory(self):
         print(f"----------------{Fore.LIGHTYELLOW_EX}{self.agentName}'s Memory:{Fore.RESET}----------------")
         for i, message in enumerate(self.memory):
-            if i == 0: # Skip the system message
-                continue
+            # if i == 0: # Skip the system message
+            #     continue
             if isinstance(message, SystemMessage):
                 print(f"{Fore.LIGHTRED_EX}System: {message.content}{Fore.RESET}")
             elif isinstance(message, HumanMessage):

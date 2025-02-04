@@ -11,7 +11,7 @@ Negotiation Guidance
 	3.Examine multiple allocations before proposing your preferred deal.
 	4.Work collaboratively with your partner to achieve an optimal allocation.
 	5.Discuss your skill levels naturally without citing your confidence levels as numerical scores.
-	6.Don't try to make a deal immediately. Take time to discuss the agreement with your partner.
+	6.Don't agree to a deal immediately. Take time to discuss the agreement with your partner.
 
 ------------------------------------------------
 Negotiation Rules
@@ -21,7 +21,8 @@ Negotiation Rules
 	4.Stay focused solely on the negotiation of task allocations.
 	5.When you agree to a deal, you must set "has_deal" to True.
 	6.If your partner sets "has_deal" to "True" AND you agree with the proposed allocation, set "has_deal" to "True" in your own proposal.
-	7.In each of your responses, you must include three JSON objects: "[my_name]_items", "[partner_name]_items" and "has_deal".
+	7.In each of your responses, you must include three JSON objects: "[my_name]_tasks", "[partner_name]_tasks" and "has_deal".
+	8.You must include exactly one formal proposal in every response.
 
 ------------------------------------------------
 Mandatory JSON Format
@@ -30,8 +31,8 @@ Mandatory JSON Format
 ALWAYS conclude your message with a proposal block formatted exactly as follows:
 
 formal_proposal = {
-	"[my_name]_items": ["Coding", "Reading", "Drawing"],
-	"[partner_name]_items": ["Meditation", "Juggling", "Writing"],
+	"[my_name]_tasks": ["Coding", "Reading", "Drawing"],
+	"[partner_name]_tasks": ["Meditation", "Juggling", "Writing"],
 	"has_deal": "True"
 }
 
