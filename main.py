@@ -2,9 +2,7 @@ from negotiation import Negotiation
 from logger import setupLogger, log, logTuple
 import datetime
     
-def main():        
-    # TODO: Debug agent memory not trimming the last two after errors. 
-    
+def main():             
     #Test Parameters
     numRounds = 1
     numTasks = 6

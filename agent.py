@@ -112,8 +112,8 @@ class Agent:
     def printMemory(self):
         print(f"----------------{Fore.LIGHTYELLOW_EX}{self.agentName}'s Memory:{Fore.RESET}----------------")
         for i, message in enumerate(self.memory):
-            # if i == 0: # Skip the system message
-            #     continue
+            if i == 0: # Skip the system message
+                continue
             if isinstance(message, SystemMessage):
                 print(f"{Fore.LIGHTRED_EX}System: {message.content}{Fore.RESET}")
             elif isinstance(message, HumanMessage):

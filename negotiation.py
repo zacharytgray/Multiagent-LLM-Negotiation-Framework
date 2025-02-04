@@ -9,7 +9,6 @@ import random
 import datetime
 import copy
 import ast
-import re
 
 class Negotiation:
     def __init__(self, roundIndex, numTasks, maxIterations, agent1Model, agent1usesOpenAI, agent1Type, agent2Model, agent2usesOpenAI, agent2Type, agent1Name, agent2Name, hasInitialProposal):
@@ -29,7 +28,7 @@ class Negotiation:
         self.formattingReminder = self.setFormattingReminder() # Initiate the formatting reminder
         self.proposalFormatExample = None # Initiate the proposal formatting example
         self.missingProposalWarning = f"""\n\n**WARNING: MISSING PROPOSAL**
-The proposal was missing from the response. This is not allowed. Make sure to include a proposal in your next response.\n\n{self.formattingReminder}""" # Initiate the missing proposal warning
+The proposal was missing from the response. This is not allowed. Make sure to include a proposal in your next response.\n{self.formattingReminder}""" # Initiate the missing proposal warning
         
     def updateAgentInstructions(self, currentAgent, otherAgent): # Add the negotiation tasks to the agent's instructions
         self.agent1.systemInstructions += "\n**NOW, HERE ARE THE ACTUAL ITEMS YOU MUST ALLOCATE:**\n"
@@ -108,17 +107,15 @@ The proposal was missing from the response. This is not allowed. Make sure to in
             maxRetries = 5
             retries = 0
             
-            if retries > 0:
-                if len(currentAgent.memory) >= 2:
-                    currentAgent.memory = currentAgent.memory[:-2]
-            
             if self.numIterations <= 1 and self.hasInitialProposal:
                 self.updateAgentInitialInstructions(currentAgent, otherAgent) # Update the agent's instructions for the current iteration
             while retries < maxRetries: # Keep retrying if the proposal is invalid
-                if retries > 0:
-                    currentAgent.printMemory()
-
-                currentResponse = currentAgent.generateResponse('user', currentInput)
+                if retries > 0: # After first attempt, generate response without input and remove previous attempt's contents
+                    # currentAgent.printMemory() # Note that this is the memory before the last to messages are removed
+                    currentAgent.memory = currentAgent.memory[:-2] # Remove last system message and last propsal attempt from memory
+                    currentResponse = currentAgent.generateResponseNoInput()
+                else: # First attempt, generate response with input
+                    currentResponse = currentAgent.generateResponse('user', currentInput)
                 potentialProposal = self.extractProposalFromReponse(currentResponse)
                 if potentialProposal != NegotiationFlag.PROPOSAL_NOT_FOUND \
                     and potentialProposal != NegotiationFlag.INVALID_PROPOSAL_FORMAT \
@@ -206,8 +203,7 @@ formal_proposal = {{
                         currentAgent.addToChatHistory('system', self.missingProposalWarning)
                         retries += 1
                         print(f"{Fore.RED}Retrying... ({retries}/{maxRetries} retries){Fore.RESET}")
-                        
-                    
+
             # check for DNF
             if retries >= maxRetries:
                 print(f"{Fore.RED}Negotiation Did Not Finish: {currentAgent.agentName} could not produce a valid proposal.{Fore.RESET}")
@@ -260,8 +256,6 @@ formal_proposal = {{
             "has_deal": "True"
         }
         """
-        invalidFormatFlag = False
-
         # Look for the new formal proposal keyword
         if "formal_proposal" not in response:
             return NegotiationFlag.PROPOSAL_NOT_FOUND
@@ -280,37 +274,36 @@ formal_proposal = {{
             dict_end = proposal_str.rindex('}')
             dict_substring = proposal_str[dict_start:dict_end + 1]
             proposal_dict = ast.literal_eval(dict_substring) # ex: proposal_dict= {'Finn_tasks': ['Painting', 'Puzzle'], 'Jake_tasks': ['Chess', 'Piano', 'Gardening', 'Guitar'], 'has_deal': 'False'}
+            agent1Tasks = []
+            agent2Tasks = []
+
+            # Extract tasks for agent1 if present
+            agent1Key = self.agent1.agentName + "_tasks"
+            if agent1Key in proposal_dict:
+                for taskName in proposal_dict[agent1Key]:
+                    task = self.convertTaskNameToTask(taskName)
+                    agent1Tasks.append(task)
+            else:
+                # If agent1's tasks are not present, return INVALID_AGENT_NAME
+                return NegotiationFlag.INVALID_AGENT_NAME
+
+            agent2Key = self.agent2.agentName + "_tasks"
+            # Extract tasks for agent2 if present
+            if agent2Key in proposal_dict:
+                for taskName in proposal_dict[agent2Key]:
+                    task = self.convertTaskNameToTask(taskName)
+                    agent2Tasks.append(task)
+            else:
+                # If agent2's tasks are not present, return INVALID_AGENT_NAME
+                return NegotiationFlag.INVALID_AGENT_NAME
+
+            # Extract has_deal boolean
+            has_deal = proposal_dict.get('has_deal', 'False').lower() == 'true'
+
         except Exception:
-            invalidFormatFlag = True
-
-        agent1Tasks = []
-        agent2Tasks = []
-
-        # Extract tasks for agent1 if present
-        agent1Key = self.agent1.agentName + "_tasks"
-        if agent1Key in proposal_dict:
-            for taskName in proposal_dict[agent1Key]:
-                task = self.convertTaskNameToTask(taskName)
-                agent1Tasks.append(task)
-        else:
-            # If agent1's tasks are not present, return INVALID_AGENT_NAME
-            return NegotiationFlag.INVALID_AGENT_NAME
-
-        agent2Key = self.agent2.agentName + "_tasks"
-        # Extract tasks for agent2 if present
-        if agent2Key in proposal_dict:
-            for taskName in proposal_dict[agent2Key]:
-                task = self.convertTaskNameToTask(taskName)
-                agent2Tasks.append(task)
-        else:
-            # If agent2's tasks are not present, return INVALID_AGENT_NAME
-            return NegotiationFlag.INVALID_AGENT_NAME
-
-        # Extract has_deal boolean
-        has_deal = proposal_dict.get('has_deal', 'False').lower() == 'true'
-        
-        if invalidFormatFlag:
             return NegotiationFlag.INVALID_PROPOSAL_FORMAT
+
+
 
         return Proposal(agent1Tasks, agent2Tasks, has_deal)
     
@@ -350,10 +343,10 @@ formal_proposal = {{
     '{self.agent1.agentName}_tasks': [Task A, Task B, ...],
     '{self.agent2.agentName}_tasks': [Task C, Task D, ...],
     'has_deal': 'False'
+    }}
     
     Use the exact JSON format as shown above, replacing the alphabetized task names with the actual tasks you think are best. 
-    Replace 'has_deal' with 'True' if you have come to a mutual agreement on the current proposal.
-}}\n """
+    Replace 'has_deal' with 'True' if you have come to a mutual agreement on the current proposal."""
         return reminderStr
     
     def setProposalFormattingExample(self):
