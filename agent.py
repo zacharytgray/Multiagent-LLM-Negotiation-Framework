@@ -33,14 +33,7 @@ class Agent:
             self.model = ChatOpenAI(model_name=self.modelName, openai_api_key=self.openaiApiKey, temperature=1) 
         else:
             self.model = ChatOllama(model=self.modelName, base_url="http://localhost:11434", temperature=0.1)
-            
-        # Set the instructions file based on the model type
-        # if self.agentType == "default":
-        #     self.instructionsFilename = "SystemInstructions/defaultCollaborativeInstructions.txt"
-            
-        # if self.modelName.lower().startswith("deepseek"):
-        #     print(f"{Fore.YELLOW}Using DeepSeek instructions{Fore.RESET}")
-        #     self.instructionsFilename = "SystemInstructions/deepseekCollaborativeInstructions.txt"
+
         self.instructionsFilename = "SystemInstructions/deepseekCollaborativeInstructions.txt"
         self.initialPropHelperFname = "SystemInstructions/initialProposalHelperInstructions.txt"
         

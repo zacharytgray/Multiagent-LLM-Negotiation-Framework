@@ -9,7 +9,7 @@ Always use EXACT variable name "formal_proposal"
 Start formal_proposal on new line with proper syntax
 Use double quotes for strings/keys, commas between tasks
 has_deal MUST be "True" or "False" (never true/false lowercase)
-Keep responses under 80 words + persuasive tone
+Keep responses under 5,000 Tokens
 
 ------------------------------------------------
 NEGOTIATION PROTOCOLS:

@@ -2,12 +2,22 @@ from negotiation import Negotiation
 from logger import setupLogger, log, logTuple
 import datetime
     
-def main():             
+def main():      
+    #TODO: Proposal Not Found is by far the most common error. Look into fixing this.
+    #TODO: Implement Competitive Domain
+    #TODO: Continue work on scoring. Need all metric used in the old paper, get all the same experiments run.
+    #TODO: Test hasInitialProposal=False still works
+    #TODO: Add timeout for agent responses and add appropriate Negotiation.TIMEOUTERROR handlinga
+    #TODO: Need to make sure randomly generated items are consistent across rounds. Figure out seeds 
+    #TODO: set max tokens on on Ollama models to see how it changes behavior
+    #TODO: See difference betwen o3 low, med, high and see what's best
+    #TODO: Create 2 text documents in current overleaf document
+
     #Test Parameters
     numRounds = 1
     numTasks = 6
     maxIterations = 32
-    hasInitialProposal = True
+    hasInitialProposal = False
     
     agent1Name = "Finn"
     agent1Model = "deepseek-r1:32b"

@@ -92,7 +92,6 @@ The proposal was missing from the response. This is not allowed. Make sure to in
         self.updateAgentInstructions(currentAgent, otherAgent) # Add the negotiation tasks to the agent's instructions
         self.agent1.addToChatHistory('system', self.agent1.systemInstructions)
         self.agent2.addToChatHistory('system', self.agent2.systemInstructions)
-        print(f"initial proposal: {self.initialProposal}")
             
         currentInput = f"Hello, I am {otherAgent.agentName}. Let's begin the task negotiation. Please start the negotiation process."
         agreementReached = False
@@ -112,7 +111,7 @@ The proposal was missing from the response. This is not allowed. Make sure to in
             while retries < maxRetries: # Keep retrying if the proposal is invalid
                 if retries > 0: # After first attempt, generate response without input and remove previous attempt's contents
                     # currentAgent.printMemory() # Note that this is the memory before the last to messages are removed
-                    currentAgent.memory = currentAgent.memory[:-2] # Remove last system message and last propsal attempt from memory
+                    currentAgent.memory = currentAgent.memory[:-1] # Remove last propsal attempt from memory
                     currentResponse = currentAgent.generateResponseNoInput()
                 else: # First attempt, generate response with input
                     currentResponse = currentAgent.generateResponse('user', currentInput)
@@ -120,7 +119,7 @@ The proposal was missing from the response. This is not allowed. Make sure to in
                 if potentialProposal != NegotiationFlag.PROPOSAL_NOT_FOUND \
                     and potentialProposal != NegotiationFlag.INVALID_PROPOSAL_FORMAT \
                         and potentialProposal != NegotiationFlag.INVALID_AGENT_NAME: # If proposal is found, check if it is valid
-                    if (self.numIterations == 0): 
+                    if (self.numIterations == 0):
                         if self.hasInitialProposal: 
                             if not self.doesProposalMatchInitialProposal(potentialProposal):
                                 # if we want an initial allocation and it's the first round and proposal does not match initial proposal,
@@ -130,12 +129,15 @@ The proposal was missing from the response. This is not allowed. Make sure to in
                                 currentAgent.addToChatHistory('system', helperMessage) 
                             else:
                                 currentAgent.proposal = potentialProposal
-                                break
+                                break                            
                         elif potentialProposal.hasDeal:
                             print(f"{Fore.RED}Invalid proposal: Initial Proposal Cannot Be Accepted{Fore.RESET}")
                             helperMessage = f"IMPORTANT: YOU ENTERED AN INVALID PROPOSAL. You are not allowed to agree to the initial proposal (set 'has_deal' to 'False').\nTry Again"
                             helperMessage += self.formattingReminder
                             currentAgent.addToChatHistory('system', helperMessage)
+                        else: # If proposal is valid, update the current agent's proposal
+                            currentAgent.proposal = potentialProposal
+                            break # Exit the retry loop when a valid proposal is found
                     else:  
                         isValidProposal = potentialProposal.validateProposal(self.tasks)
                         if isValidProposal == NegotiationFlag.ERROR_FREE: # If proposal is valid, update the current agent's proposal
@@ -181,7 +183,7 @@ Replace the alphabetized task names with the actual task names you want to propo
                     print(f"{Fore.RED}Retrying... ({retries}/{maxRetries} retries){Fore.RESET}")
                 elif potentialProposal == NegotiationFlag.INVALID_AGENT_NAME:
                     print(f"{Fore.RED}Invalid proposal: Invalid Agent Name{Fore.RESET}")
-                    helperMessage = f"""IMPORTANT: You must use the following JSON format with NO exceptions, making sure to enter the agent names correctly. {self.formattingReminder}\n\nTry Again"""
+                    helperMessage = f"""IMPORTANT: You must use the following JSON format with NO exceptions. TAKE SPECIAL CARE TO WRITE THE NAMES CORRECTLY, exactly as shown below. {self.formattingReminder}\n\nTry Again"""
                     currentAgent.addToChatHistory('system', helperMessage)
                     retries += 1
                     print(f"{Fore.RED}Retrying... ({retries}/{maxRetries} retries){Fore.RESET}")
@@ -218,9 +220,6 @@ formal_proposal = {{
                 dealCounter = 0
 
             print(f"\n{Fore.CYAN}{currentAgent.agentName}:{Fore.RESET}\n{currentResponse}")
-            
-            # print(f"\n\n{currentAgent.agentName}'s Memory:\n")
-            # currentAgent.printMemory()
             
             # Prepare for the next iteration
             currentAgent, otherAgent = otherAgent, currentAgent # Switch agents
