@@ -123,11 +123,6 @@ YOUR RESPONSE DID NOT INCLUDE A PROPOSAL. You MUST include a proposal in every r
                 self.updateAgentInitialInstructions(currentAgent, otherAgent) # Update the agent's instructions for the current iteration
                 
             while retries < maxRetries: # Keep retrying if the proposal is invalid
-                # if retries > 0: # After first attempt, generate response without input and remove previous attempt's contents
-                #     # currentAgent.printMemory()
-                #     currentAgent.memory = currentAgent.memory[:-2] # Remove last propsal attempt from memory
-                #     currentResponse = currentAgent.generateResponse()
-                # else: # First attempt, generate response with input
                 currentResponse = currentAgent.generateResponse(role='user', inputText=currentInput)
                 if currentResponse == NegotiationFlag.TIMEOUTERROR:
                     print(f"{Fore.RED}Response Timeout{Fore.RESET}")
@@ -276,6 +271,10 @@ formal_proposal = {{
         """
         # Look for the new formal proposal keyword
         if "formal_proposal" not in response:
+            return NegotiationFlag.PROPOSAL_NOT_FOUND
+        
+        # Not valid if "has_deal" is not present
+        if "has_deal" not in response:
             return NegotiationFlag.PROPOSAL_NOT_FOUND
 
         # Extract the dictionary part from the response
