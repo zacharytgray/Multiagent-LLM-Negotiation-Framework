@@ -231,7 +231,7 @@ class scoringEngine:
         return True
 
 if __name__ == "__main__":
-    se = scoringEngine("gemma2_gemma2_2025-02-01_16:53:10.csv")
+    se = scoringEngine("deepseekr132b_deepseekr132b_2025-02-05_12:03:07.csv")
     se.parseLog()
     
     roundNum  = 1

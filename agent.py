@@ -5,6 +5,10 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain_ollama import ChatOllama 
 from colorama import Fore
 from dotenv import load_dotenv
+from negotiationFlag import NegotiationFlag
+import asyncio
+from functools import partial
+from concurrent.futures import ThreadPoolExecutor
 import re
 
 class Agent:
@@ -23,6 +27,7 @@ class Agent:
         self.initialProposalHelperInstructions = ""
         self.setUpModel()
         self.loadSystemInstructions()
+        self.responseTimeout = 60 # seconds
 
     def setUpModel(self):
         if self.usesOpenAI: # Assign model based on the model type
@@ -57,50 +62,40 @@ class Agent:
             self.memory.append(AIMessage(content=content))
         else:
             raise ValueError(f"Unknown role: {role}") 
-        
-#         if self.modelName.lower().startswith("deepseek") and not isinstance(self.memory[len(self.memory) - 1], SystemMessage):
-#             formatReminder = """
-# **IMPORTANT REMINDER**: 
-# If you want to propose a deal, you MUST use the following format, beginning with AND INCLUDING the 'PROPOSAL:' keyword:
 
-# ... text leading up to proposal ...
-# PROPOSAL:
-# Your Name: task1, task2, task3, ...
-# Partner's Name: task4, task5, task6, ...
-
-# YOU MUST include the keyword "PROPOSAL:" exactly as shown above to make a proposal.
-# DO NOT include any other text or punctuation.
-# DO NOT include proposals in any other format.
-# ONLY USE THE ABOVE FORMAT TO MAKE PROPOSALS.
-
-# **IMPORTANT REMINDER**:
-# If you're ready to finalize a deal, you must both say "DEAL!" consecutively. Do not use the word "DEAL!" in any other context."""
-#             self.memory.append(SystemMessage(content=formatReminder))
+    async def generateResponseAsync(self, role=None, inputText=None): # Generate response based on input
+        try:
+            if inputText and role:
+                self.addToChatHistory(role, inputText)
+                
+            history = ChatPromptTemplate.from_messages(self.memory)
+            chain = history | self.model
+            response = await chain.ainvoke({})
+            response_content = response.content if isinstance(response, AIMessage) else response
+            
+            if self.modelName.lower().startswith("deepseek"):
+                pattern = r"<think>.*?</think>"
+                response_content = re.sub(pattern, "", response_content, flags=re.DOTALL)
+            self.addToChatHistory('assistant', response_content)
+            return response_content.strip()
+        except Exception as e:
+            print(f"Error generating response: {e}")
+            return NegotiationFlag.TIMEOUTERROR
+                
         
-    def generateResponse(self, role, inputText): # Generate response based on input
-        self.addToChatHistory(role, inputText)
-        history = ChatPromptTemplate.from_messages(self.memory)
-        chain = history | self.model
-        response = chain.invoke({})
-        response_content = response.content if isinstance(response, AIMessage) else response
-        
-        if self.modelName.lower().startswith("deepseek"):
-            pattern = r"<think>.*?</think>"
-            response_content = re.sub(pattern, "", response_content, flags=re.DOTALL)
-        self.addToChatHistory('assistant', response_content)
-        return response_content.strip()
-    
-    def generateResponseNoInput(self): # Generate response without any input
-        history = ChatPromptTemplate.from_messages(self.memory)
-        chain = history | self.model
-        response = chain.invoke({})
-        response_content = response.content if isinstance(response, AIMessage) else response
-        
-        if self.modelName.lower().startswith("deepseek"):
-            pattern = r"<think>.*?</think>"
-            response_content = re.sub(pattern, "", response_content, flags=re.DOTALL)
-        self.addToChatHistory('assistant', response_content)
-        return response_content.strip()
+    def generateResponse(self, role=None, inputText=None): # Generate response based on input
+        try:
+            loop = asyncio.get_event_loop()
+            response = loop.run_until_complete(
+                asyncio.wait_for(
+                    self.generateResponseAsync(role, inputText),
+                    timeout = self.responseTimeout
+                    )
+                )
+            return response
+        except asyncio.TimeoutError:
+            print(f"{Fore.RED}Timeout error while generating response for {self.agentName}{Fore.RESET}")
+            return NegotiationFlag.TIMEOUTERROR
     
     def printMemory(self):
         print(f"----------------{Fore.LIGHTYELLOW_EX}{self.agentName}'s Memory:{Fore.RESET}----------------")

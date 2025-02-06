@@ -9,3 +9,4 @@ class NegotiationFlag(Enum):
     ERROR_FREE = "No errors found"
     INVALID_PROPOSAL_FORMAT = "Invalid proposal format"
     INVALID_AGENT_NAME = "Invalid agent name in proposal"
+    TIMEOUTERROR = "Timeout error"

@@ -4,10 +4,8 @@ import datetime
     
 def main():      
     #TODO: Proposal Not Found is by far the most common error. Look into fixing this.
-    #TODO: Implement Competitive Domain
+    #TODO: Implement Competitive Domain once collaborative is complete
     #TODO: Continue work on scoring. Need all metric used in the old paper, get all the same experiments run.
-    #TODO: Test hasInitialProposal=False still works
-    #TODO: Add timeout for agent responses and add appropriate Negotiation.TIMEOUTERROR handlinga
     #TODO: Need to make sure randomly generated items are consistent across rounds. Figure out seeds 
     #TODO: set max tokens on on Ollama models to see how it changes behavior
     #TODO: See difference betwen o3 low, med, high and see what's best
@@ -17,7 +15,7 @@ def main():
     numRounds = 1
     numTasks = 6
     maxIterations = 32
-    hasInitialProposal = False
+    hasInitialProposal = True
     
     agent1Name = "Finn"
     agent1Model = "deepseek-r1:32b"
