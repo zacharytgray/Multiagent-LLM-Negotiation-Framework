@@ -12,7 +12,7 @@ def main():
     #TODO: Create 2 text documents in current overleaf document
 
     #Test Parameters
-    numRounds = 1
+    numRounds = 2
     numTasks = 6
     maxIterations = 32
     hasInitialProposal = True

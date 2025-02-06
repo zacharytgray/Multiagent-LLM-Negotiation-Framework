@@ -14,6 +14,7 @@ class Negotiation:
     def __init__(self, roundIndex, numTasks, maxIterations, agent1Model, agent1usesOpenAI, agent1Type, agent2Model, agent2usesOpenAI, agent2Type, agent1Name, agent2Name, hasInitialProposal):
         self.roundIndex = roundIndex
         self.DNF = False # Did Not Finish
+        self.seed = str(roundIndex) + " I love LLMs!" # Seed for random number generation
         self.numTasks = numTasks
         self.agent1 = Agent(agentName=agent1Name, modelName=agent1Model, usesOpenAI=agent1usesOpenAI, agentType=agent1Type)
         self.agent2 = Agent(agentName=agent2Name, modelName=agent2Model, usesOpenAI=agent2usesOpenAI, agentType=agent2Type)
@@ -23,6 +24,7 @@ class Negotiation:
         self.initialProposal = None # The initial proposal, set in setUpInitialProposal()
         # self.tasks = self.generateTasks(self.numTasks) # or use generateRandomTasks() for random tasks
         self.tasks = self.generateRandomTasks(self.numTasks)
+        self.tasks = self.generateSeededTasks(self.numTasks)
         self.negotiationTime = 0 # Time taken for the negotiation
         self.winningProposal = None # The winning proposal at the end of the negotiation
         self.formattingReminder = self.setFormattingReminder() # Initiate the formatting reminder
@@ -74,6 +76,17 @@ YOUR RESPONSE DID NOT INCLUDE A PROPOSAL. You MUST include a proposal in every r
         tasks = []
         for i in range(numTasks):
             taskName = chr(65 + i)  # Generate task names "Task A", "Task B", etc.
+            pref1 = round(random.uniform(0.0, 1.0), 1)
+            pref2 = round(random.uniform(0.0, 1.0), 1)
+            task = Task(name=f"Task {taskName}", pref1=pref1, pref2=pref2)
+            tasks.append(task)
+        return tasks
+    
+    def generateSeededTasks(self, numTasks):
+        random.seed(self.seed)
+        tasks = []
+        for i in range(numTasks):
+            taskName = chr(65 + i) # A, B, C, ...
             pref1 = round(random.uniform(0.0, 1.0), 1)
             pref2 = round(random.uniform(0.0, 1.0), 1)
             task = Task(name=f"Task {taskName}", pref1=pref1, pref2=pref2)

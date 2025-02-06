@@ -61,7 +61,7 @@ formal_proposal = {
 "[partner_name]_tasks": ["Documentation", "Brainstorming"],
 "has_deal": "False"
 }
-
+END EXAMPLE OUTPUT STRUCTURE
 ------------------------------------------------
 REINFORCEMENT DIRECTIVES:
 Repeat key format requirements in natural language
