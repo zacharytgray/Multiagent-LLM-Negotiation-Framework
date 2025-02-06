@@ -116,7 +116,7 @@ YOUR RESPONSE DID NOT INCLUDE A PROPOSAL. You MUST include a proposal in every r
             print(f"{task.mappedName}: \n     {self.agent1.agentName}: {task.confidence1}, \n     {self.agent2.agentName}: {task.confidence2}")
             
         while not agreementReached and self.numIterations < self.maxIterations:
-            maxRetries = 5
+            maxRetries = 10
             retries = 0
             
             if self.numIterations <= 1 and self.hasInitialProposal:

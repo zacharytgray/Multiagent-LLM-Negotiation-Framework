@@ -3,16 +3,11 @@ from logger import setupLogger, log, logTuple
 import datetime
     
 def main():      
-    #TODO: Proposal Not Found is by far the most common error. Look into fixing this.
     #TODO: Implement Competitive Domain once collaborative is complete
-    #TODO: Continue work on scoring. Need all metric used in the old paper, get all the same experiments run.
-    #TODO: Need to make sure randomly generated items are consistent across rounds. Figure out seeds 
-    #TODO: set max tokens on on Ollama models to see how it changes behavior
-    #TODO: See difference betwen o3 low, med, high and see what's best
-    #TODO: Create 2 text documents in current overleaf document
+    #TODO: Continue work on scoring. Need all metrics used in the old paper, get all the same experiments run.
 
     #Test Parameters
-    numRounds = 2
+    numRounds = 100
     numTasks = 6
     maxIterations = 32
     hasInitialProposal = True
