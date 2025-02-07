@@ -7,10 +7,10 @@ def main():
     #TODO: Continue work on scoring. Need all metrics used in the old paper, get all the same experiments run.
 
     #Test Parameters
-    numRounds = 100
+    numRounds = 5
     numTasks = 6
     maxIterations = 32
-    hasInitialProposal = True
+    hasInitialProposal = False
     
     agent1Name = "Finn"
     agent1Model = "deepseek-r1:32b"

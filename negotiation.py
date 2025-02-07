@@ -138,12 +138,9 @@ class Negotiation:
                 if retries == 0: # Generate the first response
                     currentResponse = currentAgent.generateResponse(role='user', inputText=currentInput)
                 else: # Retry if the proposal is invalid, not inputting otherAgent input this time
-                    # print("before pop:", currentAgent.memory[-2:])
                     # Remove second to last item from currentAgent.memory if it is a HumanMessage
                     if len(currentAgent.memory) >= 2 and isinstance(currentAgent.memory[-2], AIMessage):
-                        print(f"{Fore.YELLOW}Removing last AIMessage from memory{Fore.RESET}") # At this point, the last 3 messages in memory are 
                         currentAgent.memory.pop(-2) # Remove the last AIMessage from memory
-                    # print("After pop:", currentAgent.memory[-2:])
                     currentResponse = currentAgent.generateResponse()
                 if currentResponse == NegotiationFlag.TIMEOUTERROR:
                     print(f"{Fore.RED}Response Timeout{Fore.RESET}")
