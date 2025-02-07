@@ -10,7 +10,7 @@ Negotiation Rules
 	2.No task may be allocated to both parties.
 	3.Keep your responses concise (up to 80 words) and persuasive.
 	4.Stay focused solely on the negotiation of task allocations.
-	7.In your response, you must include three JSON objects: "[my_name]_tasks", "[partner_name]_tasks" and "has_deal".
+	7.In your response, you must include three JSON objects: "my_tasks", "partner_tasks" and "has_deal".
 
 ------------------------------------------------
 Mandatory JSON Format
@@ -18,21 +18,22 @@ Mandatory JSON Format
 
 Conclude your message with a proposal block formatted exactly as follows:
 
-formal_proposal = {
-	"[my_name]_tasks": [[myTasks]],
-	"[partner_name]_tasks": [[partnerTasks]],
+json 
+{
+	"my_tasks": [[myTasks]],
+	"partner_tasks": [[partnerTasks]],
 	"has_deal": "False"
 }
 
 Important Formatting Points:
-	•The proposal block must start on a new line with variable name "formal_proposal"
+	•The proposal block must start on a new line beginning with 'json'
 	•"has_deal" should be set to False
-	•Follow this format exactly; any deviation (e.g., moving tasks around, omitting formal_proposal or altering punctuation/spacing) will result in an error.
+	•Follow this format exactly; any deviation (e.g., moving tasks around, omitting json header, or altering punctuation/spacing) will result in an error.
 
 ------------------------------------------------
 Important Reminders
 	•Your confidence levels reflect your personal preferences; do not state them explicitly as scores.
-	•Strict adherence to the task allocation, formal_proposal JSON marker, and the exact formatting is mandatory. Any proposal not ending in a message block with formal_proposal will be considered non-compliant.
+	•Strict adherence to the task allocation, json header, and the exact formatting is mandatory. Any proposal not ending in a json message block with the json header will be considered non-compliant.
 	•DO NOT include any unecessary punctuation in your response, like dashes, hyphens, or asterisks. 
 	•Do not make deals immediatley. Discuss alternative proposals before agreeing to a deal.
 
@@ -42,8 +43,9 @@ Again, your proposal should look like:
 
 ...initial text leading up to proposal...
 
-formal_proposal = {
-	"[my_name]_tasks": [[myTasks]],
-	"[partner_name]_tasks": [[partnerTasks]],
+json
+{
+	"my_tasks": [[myTasks]],
+	"partner_tasks": [[partnerTasks]],
 	"has_deal": "False"
 }
