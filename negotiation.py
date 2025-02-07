@@ -138,10 +138,12 @@ class Negotiation:
                 if retries == 0: # Generate the first response
                     currentResponse = currentAgent.generateResponse(role='user', inputText=currentInput)
                 else: # Retry if the proposal is invalid, not inputting otherAgent input this time
+                    # print("before pop:", currentAgent.memory[-2:])
                     # Remove second to last item from currentAgent.memory if it is a HumanMessage
                     if len(currentAgent.memory) >= 2 and isinstance(currentAgent.memory[-2], AIMessage):
                         print(f"{Fore.YELLOW}Removing last AIMessage from memory{Fore.RESET}") # At this point, the last 3 messages in memory are 
                         currentAgent.memory.pop(-2) # Remove the last AIMessage from memory
+                    # print("After pop:", currentAgent.memory[-2:])
                     currentResponse = currentAgent.generateResponse()
                 if currentResponse == NegotiationFlag.TIMEOUTERROR:
                     print(f"{Fore.RED}Response Timeout{Fore.RESET}")
@@ -260,12 +262,9 @@ json
             
             # Prepare for the next iteration
             self.numIterations += 1
-            
-            # Don't bother switching if it's the last iteration
-            if self.numIterations < self.maxIterations:
-                self.clearAllSystemMessages(currentAgent) # Clear all system warning messages from currentAgent's memory if there are any
-                currentAgent, otherAgent = otherAgent, currentAgent # Switch agents
-                currentInput = currentResponse
+            self.clearAllSystemMessages(currentAgent) # Clear all system warning messages from currentAgent's memory if there are any
+            currentAgent, otherAgent = otherAgent, currentAgent # Switch agents
+            currentInput = currentResponse
             
         if self.maxIterations == self.numIterations:
             print(f"{Fore.RED}Negotiation Did Not Finish: Max Iterations Reached{Fore.RESET}")
@@ -273,7 +272,7 @@ json
         
         negotiationEndTime = datetime.datetime.now().replace(microsecond=0)
         self.negotiationTime = negotiationEndTime - negotiationStartTime
-        self.winningProposal = self.findMostRecentProposal(currentAgent)
+        self.winningProposal = self.findMostRecentProposal(otherAgent) # otherAgent because agents switched at the end, so the last proposal made was from otherAgent
         
     def doesProposalMatchInitialProposal(self, proposal):
         """
@@ -335,7 +334,7 @@ json
             else:
                 # If agent1's tasks are not present, return INVALID_AGENT_NAME
                 return NegotiationFlag.INVALID_AGENT_NAME
-
+            
             # Extract tasks for agent2 if present
             if agent2Key in proposal_dict:
                 for taskName in proposal_dict[agent2Key]:
@@ -346,8 +345,15 @@ json
                 return NegotiationFlag.INVALID_AGENT_NAME
 
             # Extract has_deal boolean
-            has_deal = proposal_dict.get('has_deal', 'False').lower() == 'true'
-
+            # has_deal = proposal_dict.get('has_deal', 'False').lower() == 'true'
+            
+            # Handle has_deal value - accept both string and boolean
+            has_deal_value = proposal_dict.get('has_deal', False)
+            if isinstance(has_deal_value, str):
+                has_deal = has_deal_value.lower() == 'true'
+            else:
+                has_deal = bool(has_deal_value)
+                
         except Exception as e:
             print(f"{Fore.RED}Parsing error: {e} {response}{Fore.RESET}")
             return NegotiationFlag.INVALID_PROPOSAL_FORMAT
