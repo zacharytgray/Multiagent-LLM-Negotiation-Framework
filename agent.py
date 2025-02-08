@@ -27,7 +27,7 @@ class Agent:
         self.initialProposalHelperInstructions = ""
         self.setUpModel()
         self.loadSystemInstructions()
-        self.responseTimeout = 60 # seconds
+        self.responseTimeout = 320 # seconds
 
     def setUpModel(self):
         if self.usesOpenAI: # Assign model based on the model type
@@ -37,7 +37,7 @@ class Agent:
                 raise ValueError("OpenAI API key is not found")
             self.model = ChatOpenAI(model_name=self.modelName, openai_api_key=self.openaiApiKey, temperature=1) 
         else:
-            self.model = ChatOllama(model=self.modelName, base_url="http://localhost:11434", temperature=0.1)
+            self.model = ChatOllama(model=self.modelName, base_url="http://localhost:11434", temperature=0.1, num_predict=2000)
 
         self.instructionsFilename = "SystemInstructions/deepseekCollaborativeInstructions.txt"
         self.initialPropHelperFname = "SystemInstructions/initialProposalHelperInstructions.txt"
@@ -74,6 +74,14 @@ class Agent:
             response_content = response.content if isinstance(response, AIMessage) else response
             
             if self.modelName.lower().startswith("deepseek"):
+                #Print the part of the response between the think tags
+                capture_group = re.search(r"<think>(.*?)</think>", response_content, re.DOTALL)
+                if capture_group:
+                    thought_content = capture_group.group(1)
+                else:
+                    thought_content = response_content
+                # print(f"Thoughts: {thought_content}")
+                
                 pattern = r"<think>.*?</think>"
                 response_content = re.sub(pattern, "", response_content, flags=re.DOTALL)
             self.addToChatHistory('assistant', response_content)
@@ -96,6 +104,9 @@ class Agent:
         except asyncio.TimeoutError:
             print(f"{Fore.RED}Timeout error while generating response for {self.agentName}{Fore.RESET}")
             return NegotiationFlag.TIMEOUTERROR
+        
+    def clearMemory(self):
+        self.memory = self.memory[:1] # Keep the system message
     
     def printMemory(self):
         print(f"----------------{Fore.LIGHTYELLOW_EX}{self.agentName}'s Memory:{Fore.RESET}----------------")

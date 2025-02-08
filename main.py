@@ -7,7 +7,7 @@ def main():
     #TODO: Continue work on scoring. Need all metrics used in the old paper, get all the same experiments run.
 
     #Test Parameters
-    numRounds = 5
+    numRounds = 100
     numTasks = 6
     maxIterations = 32
     hasInitialProposal = False
@@ -33,27 +33,31 @@ def main():
     negotiationStartTime = datetime.datetime.now().replace(microsecond=0)
     # Run the negotiation rounds
     for roundIndex in range(1, numRounds + 1):
-        n = Negotiation(roundIndex, 
-                        numTasks, 
-                        maxIterations, 
-                        agent1Model, 
-                        agent1usesOpenAI, 
-                        agent1Type, 
-                        agent2Model, 
-                        agent2usesOpenAI, 
-                        agent2Type, 
-                        agent1Name, 
-                        agent2Name, 
-                        hasInitialProposal)
-        n.startNegotiation()
+        hasDNF = True
+        while hasDNF:
+            n = Negotiation(roundIndex, 
+                            numTasks, 
+                            maxIterations, 
+                            agent1Model, 
+                            agent1usesOpenAI, 
+                            agent1Type, 
+                            agent2Model, 
+                            agent2usesOpenAI, 
+                            agent2Type, 
+                            agent1Name, 
+                            agent2Name, 
+                            hasInitialProposal)
+            n.startNegotiation()
+            hasDNF = n.DNF
+    
         dataTuple = (
             n.roundIndex,
             n.negotiationTime,
-            None if n.DNF else n.winningProposal.agent1Utility,
-            None if n.DNF else n.winningProposal.agent2Utility,
+            n.winningProposal.agent1Utility,
+            n.winningProposal.agent2Utility,
             n.numIterations,
-            None if n.DNF else n.winningProposal.agent1Tasks,
-            None if n.DNF else n.winningProposal.agent2Tasks,
+            n.winningProposal.agent1Tasks,
+            n.winningProposal.agent2Tasks,
             n.tasks,
             (n.initialProposal.agent1Tasks, n.initialProposal.agent2Tasks) if n.hasInitialProposal else None,  # None if hasInitialProposal is False
             n.agent1.usesOpenAI,
@@ -62,7 +66,6 @@ def main():
             n.agent2.modelName,
             n.agent1.agentType,
             n.agent2.agentType,
-            n.DNF
         )
         logTuple(logFilename, dataTuple)
     totalNegotiationTime = datetime.datetime.now().replace(microsecond=0) - negotiationStartTime
