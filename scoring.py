@@ -5,6 +5,8 @@ from itertools import combinations
 from proposal import Proposal
 from task import Task
 
+#TODO: Need to implement:
+
 class scoringEngine:
     def __init__(self, logFilename):        
         self.rounds = [] # List of rounds, set in parseLog
@@ -14,15 +16,17 @@ class scoringEngine:
         self.totalNegotiationTime = None # Total negotiation time, set in parseLog
         self.averageTimePerRound = None # Average time per round, set in parseLog
         
+        # Allocation Tolerance (in %): A percentage threshold for all allocation rounds. 
+            # If the Allocation Score Loss is less than or equal to this threshold, the allocation passes this test. 
+            # If the Allocation Score Loss is greater, it fails. 
+        self.allocationTolerance = 0.15 # Allocation tolerance
+        
         logsFolder = "Logs"
         if not os.path.exists(logsFolder):
             os.makedirs(logsFolder)
         self.logFilepath = os.path.join(logsFolder, logFilename)
         
     def parseLog(self): 
-        """
-        Parse the log file
-        """
         with open (self.logFilepath, mode='r', newline = '') as file:
             reader = csv.reader(file)
             header = next(reader) # Skip the header row
@@ -46,14 +50,15 @@ class scoringEngine:
                     agent1Tasks = self.parseTasks(row[5])
                     agent2Tasks = self.parseTasks(row[6])
                     tasks = self.parseTasks(row[7])
-                    initialProposal = self.parseProposal(row[8]) # input tuple: [agent1Tasks, agent2Tasks]
+                    initialProposal = self.parseProposal(row[8]) # input tuple: [agent1Tasks, agent2Tasks] or None if hasInitialProposal == False
                     agent1UsesOpenAI = row[9].strip().lower() == 'true'
                     agent2UsesOpenAI = row[10].strip().lower() == 'true'
                     agent1ModelName = row[11]
                     agent2ModelName = row[12]
                     agent1Type = row[13]
                     agent2Type = row[14]
-                    hasDNF = row[15].strip().lower() == 'true'
+                    
+                    winningProposal = Proposal(agent1Tasks, agent2Tasks, True)
                     
                     roundData = {
                         'roundNumber': roundNumber,
@@ -71,7 +76,7 @@ class scoringEngine:
                         'agent2ModelName': agent2ModelName,
                         'agent1Type': agent1Type,
                         'agent2Type': agent2Type,
-                        'hasDNF': hasDNF
+                        'winningProposal': winningProposal
                     }
                     self.rounds.append(roundData)
         
@@ -94,12 +99,10 @@ class scoringEngine:
             pref1, pref2 = prefs.strip(")").split(", ")
             parsedTasks.append(Task(name, float(pref1), float(pref2)))
         return parsedTasks    
-    def parseProposal(self, proposalStr): # Parse proposal string into proposal object
-        """
-        Parse a string representation of a proposal into a Proposal object.
-        The proposal string is expected in the following format:
-        "([Task C (0.1, 0.9), Task D (0.8, 0.4), Task F (0.2, 0.6)], [Task A (0.5, 0.7), Task B (0.6, 0.2), Task E (0.5, 0.3)])"
-        """
+    def parseProposal(self, proposalStr): # Parse proposal string into proposal object 
+        if proposalStr == "": # Handle the case where there is no initial proposal
+            return None
+            
         # Remove outer parentheses if present.
         proposalStr = proposalStr.strip("()")
         
@@ -186,7 +189,6 @@ class scoringEngine:
                 previousUtility = allocation.totalUtility
 
         return groupedRanking
-        
     def printGroupedRankedAllocations(self, groupedRankedAllocations): # Print all possible allocations for a given round, where ties are grouped
         for groupIndex in sorted(groupedRankedAllocations.keys()):
             print(f"\nGroup {groupIndex}:")
@@ -212,33 +214,87 @@ class scoringEngine:
             
         return None # Not found
     
-    def calculateOptimalAllocationPercentage(optimalCount, totalRounds):
+    def calculateOptimalAllocationPercentage(self, optimalCount, totalRounds):
         """
         Calculate the percentage of optimal allocations.
         """
         return (optimalCount / totalRounds) * 100
 
-    def calculateAllocationScoreLoss(currentUtility, optimalUtility):
+    def getAllocationScoreLoss(self, currentUtility, optimalUtility):
+        # For a given allocation, this is the percentage drop from the optimal allocation. 
+        # It measures the difference from the optimal allocation as a percentage of that maximum. 
+        # This is calculated as follows:
+        # 𝐿𝑜𝑠𝑠 = 100 ∗ (1 − (Current Task Utility/Optimal Task Utility))
         """
         Calculate the allocation score loss as a percentage.
         """
         return 100 * (1 - (currentUtility / optimalUtility))
-
-    def isParetoOptimal(allocation, allAllocations):
+    
+    def getOptimalAllocationPercentage(self):
+        # Returns the percentage of negotiations in which the agents achieved the optimal allocation. 
         """
-        Check if the given allocation is Pareto optimal.
+        Calculate the percentage of optimal allocations.
         """
-        return True
+        optimalCount = sum(1 for roundData in self.rounds if self.isOptimalAllocation(roundData['winningProposal'], roundData['tasks']))
+        return self.calculateOptimalAllocationPercentage(optimalCount, len(self.rounds))
 
+
+    def getPercentageAwayFromOptimal(self, agent1Items, agent2Items):
+        # Create proposal from the given items
+        currentProposal = Proposal(agent1Items, agent2Items)
+        currentUtility = currentProposal.totalUtility
+        
+        # Get all possible allocations for these tasks
+        allTasks = agent1Items + agent2Items
+        allAllocations = self.getAllPossibleAllocations(allTasks)
+        
+        # Get the best possible utility (first allocation since list is sorted)
+        bestUtility = allAllocations[0].totalUtility if allAllocations else 0
+        
+        # Calculate percentage difference
+        percentAway = round(100 * abs(currentUtility - bestUtility) / bestUtility, 2)
+        return percentAway
+        
+    def getPercentageWithinAllocationTolerance(self):
+        # Percentage within Allocation Tolerance (in %): 
+        # The percentage of rounds whose allocations were within the allocation tolerance. 
+        # That is, the percentage of all rounds that are close enough to the optimal solution to be considered passing.
+        
+        numWithinTolerance = 0
+        totalRounds = len(self.rounds)
+        
+        for roundData in self.rounds:
+            percentageAway = self.getPercentageAwayFromOptimal(roundData['agent1Tasks'], roundData['agent2Tasks'])
+            if percentageAway <= self.allocationTolerance * 100:  # Convert tolerance to percentage
+                numWithinTolerance += 1
+                
+        return (numWithinTolerance / totalRounds) * 100 if totalRounds > 0 else 0
+
+    
 if __name__ == "__main__":
-    se = scoringEngine("deepseekr132b_deepseekr132b_2025-02-05_12:03:07.csv")
+    se = scoringEngine("gemma2_gemma2_2025-02-08_19:24:23.csv")
     se.parseLog()
     
-    roundNum  = 1
-    round1Tasks = se.rounds[roundNum-1]['tasks']
-    round1Agent1Tasks = se.rounds[roundNum-1]['agent1Tasks']
-    round1Agent2Tasks = se.rounds[roundNum-1]['agent2Tasks']
-    round1Proposal = Proposal(round1Agent1Tasks, round1Agent2Tasks)
+    numRounds = len(se.rounds)
+    numOptimal = 0
+    allocationRankSum = 0
     
-    allocationRank = se.getAllocationRank(round1Proposal, round1Tasks)
-    print(f"Allocation rank: {allocationRank}")
+    for roundData in se.rounds:
+        roundNum = roundData['roundNumber']
+        roundTasks = se.rounds[roundNum-1]['tasks']
+        roundAgent1Tasks = se.rounds[roundNum-1]['agent1Tasks']
+        roundAgent2Tasks = se.rounds[roundNum-1]['agent2Tasks']
+        roundProposal = Proposal(roundAgent1Tasks, roundAgent2Tasks)
+        allocationRank = se.getAllocationRank(roundProposal, roundTasks)
+        
+        if se.isOptimalAllocation(roundProposal, roundTasks):
+            numOptimal += 1
+        
+        allocationRankSum += allocationRank
+            
+            
+    print(f"Average Allocation Rank: {allocationRankSum/numRounds}")    
+    print(f"Average Allocation Score Loss: {se.getAllocationScoreLoss(roundProposal.totalUtility, se.getAllPossibleAllocations(roundTasks)[0].totalUtility)}%")
+    print(f"Optimal allocation percentage: {se.getOptimalAllocationPercentage()}%")
+    print(f"Percentage within allocation tolerance: {se.getPercentageWithinAllocationTolerance()}%")
+    

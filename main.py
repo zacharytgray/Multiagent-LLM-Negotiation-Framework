@@ -3,22 +3,19 @@ from logger import setupLogger, log, logTuple
 import datetime
     
 def main():      
-    #TODO: Implement Competitive Domain once collaborative is complete
-    #TODO: Continue work on scoring. Need all metrics used in the old paper, get all the same experiments run.
-
     #Test Parameters
-    numRounds = 100
-    numTasks = 6
+    numRounds = 3
+    numTasks = 4
     maxIterations = 32
-    hasInitialProposal = False
+    hasInitialProposal = True
     
     agent1Name = "Finn"
-    agent1Model = "deepseek-r1:32b"
+    agent1Model = "gemma2"
     agent1usesOpenAI = False
     agent1Type = "default"
     
     agent2Name = "Jake"
-    agent2Model = "deepseek-r1:32b"
+    agent2Model = "gemma2"
     agent2usesOpenAI = False
     agent2Type = "default"
     
