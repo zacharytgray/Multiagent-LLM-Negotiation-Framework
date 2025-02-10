@@ -274,10 +274,38 @@ class scoringEngine:
                 numWithinTolerance += 1
                 
         return (numWithinTolerance / totalRounds) * 100 if totalRounds > 0 else 0
-
+    
+    def exportUtilityComparison(self):
+        """
+        Create a CSV file comparing current total utility vs optimal utility for each round
+        Filename format: utilityComparison-agent1model_agent2model.csv
+        Columns: Round Number, Current Utility, Optimal Utility
+        """
+        # Sanitize model names for filename
+        agent1_name = ''.join(filter(str.isalnum, self.agent1Model))
+        agent2_name = ''.join(filter(str.isalnum, self.agent2Model))
+        outputFilename = f"utilityComparison-{agent1_name}_{agent2_name}.csv"
+        outputPath = os.path.join("Logs", outputFilename)
+        
+        with open(outputPath, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['Round', 'Current Utility', 'Optimal Utility'])  # Updated header
+            
+            for round_data in self.rounds:
+                # Get round number
+                round_num = round_data['roundNumber']
+                
+                # Calculate current total utility
+                current_utility = round_data['agent1Utility'] + round_data['agent2Utility']
+                
+                # Get optimal utility for this round
+                all_allocations = self.getAllPossibleAllocations(round_data['tasks'])
+                optimal_utility = all_allocations[0].totalUtility if all_allocations else 0
+                
+                writer.writerow([round_num, current_utility, optimal_utility])
     
 if __name__ == "__main__":
-    se = scoringEngine("deepseek-r1-70B vs llama3.3-70b, 4 tasks.csv")
+    se = scoringEngine("llama33latest_llama33latest_2025-02-09_15:47:12.csv")
     se.parseLog()
     
     numRounds = len(se.rounds)
@@ -302,4 +330,4 @@ if __name__ == "__main__":
     print(f"Average Allocation Score Loss: {se.getAllocationScoreLoss(roundProposal.totalUtility, se.getAllPossibleAllocations(roundTasks)[0].totalUtility)}%")
     print(f"Optimal allocation percentage: {se.getOptimalAllocationPercentage()}%")
     print(f"Percentage within allocation tolerance: {se.getPercentageWithinAllocationTolerance()}%")
-    
+    se.exportUtilityComparison()
