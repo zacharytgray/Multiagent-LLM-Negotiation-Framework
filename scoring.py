@@ -2,6 +2,9 @@ import csv
 from datetime import datetime, timedelta
 import os
 from itertools import combinations
+import matplotlib
+matplotlib.use('Agg')  # Must be called before importing pyplot
+import matplotlib.pyplot as plt
 from proposal import Proposal
 from task import Task
 
@@ -304,6 +307,36 @@ class scoringEngine:
                 
                 writer.writerow([round_num, current_utility, optimal_utility])
     
+    def createUtilityComparisonPlot(self):
+        """
+        Create and display a plot comparing current total utility vs optimal utility for each round
+        """
+        
+        rounds = []
+        current_utilities = []
+        optimal_utilities = []
+        
+        for round_data in self.rounds:
+            # Get round number and current utility
+            rounds.append(round_data['roundNumber'])
+            current_utilities.append(round_data['agent1Utility'] + round_data['agent2Utility'])
+            
+            # Get optimal utility for this round
+            all_allocations = self.getAllPossibleAllocations(round_data['tasks'])
+            optimal_utilities.append(all_allocations[0].totalUtility if all_allocations else 0)
+        
+        plt.figure(figsize=(10, 6))
+        plt.plot(rounds, optimal_utilities, 'b-', label='Optimal Utility', marker='o')
+        plt.plot(rounds, current_utilities, 'r-', label='Current Utility', marker='o')
+        
+        plt.xlabel('Round Number')
+        plt.ylabel('Utility')
+        plt.title(f'Utility Comparison by Round\n{self.agent1Model} vs {self.agent2Model}')
+        plt.legend()
+        plt.grid(True)
+        
+        plt.show()
+
 if __name__ == "__main__":
     se = scoringEngine("llama33latest_llama33latest_2025-02-09_15:47:12.csv")
     se.parseLog()
@@ -330,4 +363,5 @@ if __name__ == "__main__":
     print(f"Average Allocation Score Loss: {se.getAllocationScoreLoss(roundProposal.totalUtility, se.getAllPossibleAllocations(roundTasks)[0].totalUtility)}%")
     print(f"Optimal allocation percentage: {se.getOptimalAllocationPercentage()}%")
     print(f"Percentage within allocation tolerance: {se.getPercentageWithinAllocationTolerance()}%")
-    se.exportUtilityComparison()
+    # se.exportUtilityComparison()
+    se.createUtilityComparisonPlot()
