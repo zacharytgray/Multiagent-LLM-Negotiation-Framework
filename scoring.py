@@ -91,6 +91,11 @@ class scoringEngine:
         """
         Parse a string representation of a list of tasks into a list of tuples.
         """
+        
+        # Handle empty list case
+        if tasksStr.strip() == "[]":
+            return []
+        
         tasksStr = tasksStr.strip("[]")
         tasks = tasksStr.split("), ")
         parsedTasks = []
@@ -162,7 +167,7 @@ class scoringEngine:
         """
         possibleAllocations = [] 
         taskCount = len(roundTasks)
-        for size in range(1, taskCount):
+        for size in range(0, taskCount + 1):
             for combo in combinations(roundTasks, size):
                 groupA = list(combo)
                 groupB = [task for task in roundTasks if task not in groupA]
@@ -272,7 +277,7 @@ class scoringEngine:
 
     
 if __name__ == "__main__":
-    se = scoringEngine("gemma2_gemma2_2025-02-08_19:24:23.csv")
+    se = scoringEngine("deepseek-r1-70B vs llama3.3-70b, 4 tasks.csv")
     se.parseLog()
     
     numRounds = len(se.rounds)
