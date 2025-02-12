@@ -105,9 +105,6 @@ class Agent:
             print(f"{Fore.RED}Timeout error while generating response for {self.agentName}{Fore.RESET}")
             return NegotiationFlag.TIMEOUTERROR
         
-    def clearMemory(self):
-        self.memory = self.memory[:1] # Keep the system message
-    
     def printMemory(self):
         print(f"----------------{Fore.LIGHTYELLOW_EX}{self.agentName}'s Memory:{Fore.RESET}----------------")
         for i, message in enumerate(self.memory):

@@ -45,8 +45,8 @@ class Negotiation:
         )
         
     def updateAgentInstructions(self): # Add the negotiation tasks to the agent's instructions
-        self.agent1.systemInstructions += "\n**NOW, HERE ARE THE ACTUAL ITEMS YOU MUST ALLOCATE:**\n"
-        self.agent2.systemInstructions += "\n**NOW, HERE ARE THE ACTUAL ITEMS YOU MUST ALLOCATE:**\n"
+        self.agent1.systemInstructions += "\n**NOW, HERE ARE THE ACTUAL ITEMS YOU MUST ALLOCATE:**\n\n"
+        self.agent2.systemInstructions += "\n**NOW, HERE ARE THE ACTUAL ITEMS YOU MUST ALLOCATE:**\n\n"
         for task in self.tasks:
             self.agent1.systemInstructions += f"{task.mappedName}: Your confidence level for this task is {task.confidence1}.\n"
             self.agent2.systemInstructions += f"{task.mappedName}: Your confidence level for this task is {task.confidence2}.\n"
@@ -213,9 +213,6 @@ class Negotiation:
             else:
                 # If agent2's tasks are not present, return INVALID_AGENT_NAME
                 return NegotiationFlag.INVALID_AGENT_NAME
-
-            # Extract has_deal boolean
-            # has_deal = proposal_dict.get('has_deal', 'False').lower() == 'true'
             
             # Handle has_deal value - accept both string and boolean
             has_deal_value = proposal_dict.get('has_deal', False)

@@ -52,14 +52,14 @@ class NegotiationManager:
                 retries = self.handle_timeout(retries, max_retries)
                 continue
 
-            proposal = self.negotiation.extractProposalFromReponse(response, current_agent)
+            proposal = self.negotiation.extractProposalFromReponse(response, current_agent) # Flags here can be INVALID_PROPOSAL_FORMAT, INVALID_AGENT_NAME, PROPOSAL_NOT_FOUND
             proposal_result = self.validate_proposal(proposal, current_agent)
             
             if proposal_result == NegotiationFlag.ERROR_FREE:
                 return response, proposal
             
             retries += 1
-            print(f"{Fore.RED}Invalid Proposal: {proposal_result}\n{current_agent.agentName}{response}{Fore.RESET}")
+            print(f"{Fore.RED}Invalid Proposal: {proposal_result}\n{current_agent.agentName}: {response}{Fore.RESET}")
             print(f"{Fore.RED}Retrying... ({retries}/{max_retries} retries){Fore.RESET}")
 
         return None, None # Return None if retries exceed max_retries
@@ -70,12 +70,13 @@ class NegotiationManager:
         else:
             # Remove last 2 messages (the error response and the original input) if they exist
             if len(current_agent.memory) >= 3:
-                current_agent.memory.pop(-1)  # Remove error response
-                current_agent.memory.pop(-1)  # Remove original input for this iteration
+                if isinstance(current_agent.memory[-1], SystemMessage):
+                    current_agent.memory.pop(-2).content
+                else:
+                    current_agent.memory.pop(-1).content 
             return current_agent.generateResponse() 
-        
-        #TODO: Currently testing the above code with removing agent responses from memory. Check if at this point the system instructions have been removed from memory, because if so, we might be removing an extra message.
 
+            
     def handle_timeout(self, retries, max_retries):
         print(f"{Fore.RED}Response Timeout{Fore.RESET}")
         retries += 1
@@ -83,7 +84,7 @@ class NegotiationManager:
         return retries
 
     def validate_proposal(self, proposal, current_agent):
-        if isinstance(proposal, NegotiationFlag): 
+        if isinstance(proposal, NegotiationFlag): # Can be INVALID_PROPOSAL_FORMAT, INVALID_AGENT_NAME, PROPOSAL_NOT_FOUND or proposal str
             return self.handle_proposal_flag(proposal, current_agent) # Returns INVALID_PROPOSAL_FORMAT or PROPOSAL_NOT_FOUND
             
         if self.negotiation.numIterations == 0:
@@ -92,7 +93,7 @@ class NegotiationManager:
         return proposal.validateProposal(self.negotiation.tasks)
 
     def handle_proposal_flag(self, flag, current_agent):
-        if flag == NegotiationFlag.INVALID_PROPOSAL_FORMAT:
+        if flag == NegotiationFlag.INVALID_PROPOSAL_FORMAT or flag == NegotiationFlag.INVALID_TASKS_PRESENT or flag == NegotiationFlag.TOO_MANY_TASKS or flag == NegotiationFlag.NOT_ENOUGH_TASKS:
             self.negotiation.clearAllSystemMessages(current_agent)
             current_agent.addToChatHistory('system', self.get_format_error_message(current_agent))
         elif flag == NegotiationFlag.PROPOSAL_NOT_FOUND:
@@ -114,7 +115,16 @@ class NegotiationManager:
             self.negotiation.clearAllSystemMessages(current_agent)
             current_agent.addToChatHistory('system', "Initial proposal cannot be accepted")
             return NegotiationFlag.INVALID_PROPOSAL_FORMAT
-        return NegotiationFlag.ERROR_FREE
+    
+        proposal_result = proposal.validateProposal(self.negotiation.tasks)
+
+        if proposal_result == NegotiationFlag.ERROR_FREE:
+            return proposal_result
+        elif proposal_result == NegotiationFlag.INVALID_PROPOSAL_FORMAT or proposal_result == NegotiationFlag.INVALID_TASKS_PRESENT or proposal_result == NegotiationFlag.TOO_MANY_TASKS or proposal_result == NegotiationFlag.NOT_ENOUGH_TASKS:
+            self.negotiation.clearAllSystemMessages(current_agent)
+            current_agent.addToChatHistory('system', self.get_format_error_message(current_agent))
+
+        return proposal_result
 
     def get_format_error_message(self, current_agent):
         return f"""IMPORTANT: Remember to include the JSON object with the proposed tasks in your response.

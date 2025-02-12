@@ -2,7 +2,6 @@ from negotiation import Negotiation
 from logger import setupLogger, log, logTuple
 import datetime
 import matplotlib.pyplot as plt
-import pandas as pd
 import glob
 import os
 
@@ -12,7 +11,7 @@ def main():
 
     #Test Parameters
     numRounds = 50
-    numTasks = 8
+    # numTasks = 8
     maxIterations = 32
     hasInitialProposal = False
     
@@ -26,11 +25,10 @@ def main():
     agent2usesOpenAI = False
     agent2Type = "default"
 
-    experimentModels = [("deepseek-r1:32b","deepseek-r1:b"), 
-                   ("llama3.3:70b-instruct-q4_K_M","llama3.3:70b-instruct-q4_K_M"), 
-                   ("deepseek-r1:70b","llama3.3:70b-instruct-q4_K_M")]
+
+    experimentModels = [("qwen2.5:32b","qwen2.5:32b", 8)]
     
-    for agent1Model, agent2Model in experimentModels:
+    for agent1Model, agent2Model, numTasks in experimentModels:
         # Setup csv logger
         logFilename = constructLogFilename(agent1Model, agent2Model)
         setupLogger(logFilename=logFilename)
