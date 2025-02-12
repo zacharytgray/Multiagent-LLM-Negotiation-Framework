@@ -39,7 +39,7 @@ class Agent:
         else:
             self.model = ChatOllama(model=self.modelName, base_url="http://localhost:11434", temperature=0.1, num_predict=2000)
 
-        self.instructionsFilename = "SystemInstructions/deepseekCollaborativeInstructions.txt"
+        self.instructionsFilename = "SystemInstructions/defaultCollaborativeInstructions.txt"
         self.initialPropHelperFname = "SystemInstructions/initialProposalHelperInstructions.txt"
         
     def loadSystemInstructions(self): # Load system instructions from file
