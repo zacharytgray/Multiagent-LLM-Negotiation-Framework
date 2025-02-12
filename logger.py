@@ -1,6 +1,8 @@
 import csv
 import os
 
+
+
 def setupLogger(logFilename="negotiation.csv"):
     """
     Sets up the CSV logger by creating the file and writing the header if it doesn't exist.

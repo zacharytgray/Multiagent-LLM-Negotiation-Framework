@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 import os
 from itertools import combinations
 import matplotlib
-matplotlib.use('Agg')  # Must be called before importing pyplot
 import matplotlib.pyplot as plt
 from proposal import Proposal
 from task import Task
@@ -227,16 +226,6 @@ class scoringEngine:
         Calculate the percentage of optimal allocations.
         """
         return (optimalCount / totalRounds) * 100
-
-    def getAllocationScoreLoss(self, currentUtility, optimalUtility):
-        # For a given allocation, this is the percentage drop from the optimal allocation. 
-        # It measures the difference from the optimal allocation as a percentage of that maximum. 
-        # This is calculated as follows:
-        # 𝐿𝑜𝑠𝑠 = 100 ∗ (1 − (Current Task Utility/Optimal Task Utility))
-        """
-        Calculate the allocation score loss as a percentage.
-        """
-        return 100 * (1 - (currentUtility / optimalUtility))
     
     def getOptimalAllocationPercentage(self):
         # Returns the percentage of negotiations in which the agents achieved the optimal allocation. 
@@ -287,8 +276,11 @@ class scoringEngine:
         # Sanitize model names for filename
         agent1_name = ''.join(filter(str.isalnum, self.agent1Model))
         agent2_name = ''.join(filter(str.isalnum, self.agent2Model))
-        outputFilename = f"utilityComparison-{agent1_name}_{agent2_name}.csv"
-        outputPath = os.path.join("Logs", outputFilename)
+        outputFilename = f"utilityComparison-{agent1_name}_{agent2_name}_{self.numTasks}Tasks.csv"
+        textFolder = os.path.join("Logs", "text")
+        if not os.path.exists(textFolder):
+            os.makedirs(textFolder)
+        outputPath = os.path.join(textFolder, outputFilename)
         
         with open(outputPath, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
@@ -306,62 +298,146 @@ class scoringEngine:
                 optimal_utility = all_allocations[0].totalUtility if all_allocations else 0
                 
                 writer.writerow([round_num, current_utility, optimal_utility])
-    
-    def createUtilityComparisonPlot(self):
+
+
+    def createUtilityComparisonPlot(self, saveFile=False):
         """
         Create and display a plot comparing current total utility vs optimal utility for each round
+        If saveFile is True, saves the plot to a file in addition to displaying it
         """
         
         rounds = []
         current_utilities = []
         optimal_utilities = []
+        allocation_ranks = []
         
         for round_data in self.rounds:
-            # Get round number and current utility
             rounds.append(round_data['roundNumber'])
             current_utilities.append(round_data['agent1Utility'] + round_data['agent2Utility'])
             
-            # Get optimal utility for this round
+            # Get optimal utility and rank for this round
             all_allocations = self.getAllPossibleAllocations(round_data['tasks'])
             optimal_utilities.append(all_allocations[0].totalUtility if all_allocations else 0)
+            
+            # Calculate rank for current allocation
+            current_proposal = Proposal(round_data['agent1Tasks'], round_data['agent2Tasks'])
+            allocation_ranks.append(self.getAllocationRank(current_proposal, round_data['tasks']))
         
         plt.figure(figsize=(10, 6))
-        plt.plot(rounds, optimal_utilities, 'b-', label='Optimal Utility', marker='o')
-        plt.plot(rounds, current_utilities, 'r-', label='Current Utility', marker='o')
+        
+        # Add alternating vertical lines
+        for x in rounds[::2]:  # Every other x value
+            plt.axvline(x=x, color='gray', alpha=0.1, zorder=1)
+        
+        # Add horizontal lines for averages
+        avg_optimal = calculateAverageOptimalUtility(self.rounds)
+        avg_current = calculateAverageUtility(self.rounds)
+        plt.axhline(y=avg_optimal, color='black', linestyle='--', label=f'Avg Optimal Utility: {avg_optimal:.2f}', zorder=1)
+        plt.axhline(y=avg_current, color='orange', linestyle='--', label=f'Avg Current Utility: {avg_current:.2f}', zorder=1)
+            
+        plt.plot(rounds, optimal_utilities, 'bo', label='Optimal Utility', markersize=8, zorder=2)
+        
+        # Split current utilities into optimal and non-optimal points
+        optimal_indices = [i for i, rank in enumerate(allocation_ranks) if rank == 1]
+        non_optimal_indices = [i for i, rank in enumerate(allocation_ranks) if rank != 1]
+        
+        # Plot optimal points in green and non-optimal in red
+        if non_optimal_indices:
+            plt.plot([rounds[i] for i in non_optimal_indices],
+                    [current_utilities[i] for i in non_optimal_indices],
+                    'ro', label='Non-Optimal Current Utility', markersize=8, zorder=2)
+        if optimal_indices:
+            plt.plot([rounds[i] for i in optimal_indices],
+                    [current_utilities[i] for i in optimal_indices],
+                    'go', label='Optimal Current Utility', markersize=8, zorder=2)
+        
+        # Add annotations for both current and optimal utilities
+        for i in range(len(rounds)):
+            # Annotate current utility (red/green points)
+            plt.annotate(f'{current_utilities[i]:.1f}', 
+                        (rounds[i], current_utilities[i]),
+                        xytext=(-17, -3), 
+                        textcoords='offset points',
+                        fontsize=8,
+                        zorder=3)
+            
+            # Annotate optimal utility (blue points)
+            plt.annotate(f'{optimal_utilities[i]:.1f}', 
+                        (rounds[i], optimal_utilities[i]),
+                        xytext=(-17, -3), 
+                        textcoords='offset points',
+                        fontsize=8,
+                        zorder=3)
         
         plt.xlabel('Round Number')
         plt.ylabel('Utility')
-        plt.title(f'Utility Comparison by Round\n{self.agent1Model} vs {self.agent2Model}')
+        plt.title(f'Utility Comparison by Round\n{self.agent1Model} vs {self.agent2Model}, {self.numTasks} Tasks')
         plt.legend()
         plt.grid(True)
         
+        if saveFile:
+            # Sanitize model names for filename
+            agent1_name = ''.join(filter(str.isalnum, self.agent1Model))
+            agent2_name = ''.join(filter(str.isalnum, self.agent2Model))
+            photosFolder = os.path.join("Logs", "photos")
+            if not os.path.exists(photosFolder):
+                os.makedirs(photosFolder)
+            filename = f"utilityComparison-{agent1_name}_{agent2_name}_{self.numTasks}Tasks.png"
+            plt.savefig(os.path.join(photosFolder, filename))
+        
         plt.show()
+        
+def calculateAverageUtility(rounds):
+    """
+    Calculate the average utility for each round.
+    """
+    total_utilities = []
+    for round_data in rounds:
+        total_utilities.append(round_data['agent1Utility'] + round_data['agent2Utility'])
+    return sum(total_utilities) / len(total_utilities) if total_utilities else 0
+
+def calculateAverageOptimalUtility(rounds):
+    """
+    Calculate the average optimal utility for each round.
+    """
+    total_utilities = []
+    for round_data in rounds:
+        all_allocations = se.getAllPossibleAllocations(round_data['tasks'])
+        total_utilities.append(all_allocations[0].totalUtility if all_allocations else 0)
+    return sum(total_utilities) / len(total_utilities) if total_utilities else 0
 
 if __name__ == "__main__":
-    se = scoringEngine("llama33latest_llama33latest_2025-02-09_15:47:12.csv")
-    se.parseLog()
-    
-    numRounds = len(se.rounds)
-    numOptimal = 0
-    allocationRankSum = 0
-    
-    for roundData in se.rounds:
-        roundNum = roundData['roundNumber']
-        roundTasks = se.rounds[roundNum-1]['tasks']
-        roundAgent1Tasks = se.rounds[roundNum-1]['agent1Tasks']
-        roundAgent2Tasks = se.rounds[roundNum-1]['agent2Tasks']
-        roundProposal = Proposal(roundAgent1Tasks, roundAgent2Tasks)
-        allocationRank = se.getAllocationRank(roundProposal, roundTasks)
+    # Get all CSV files in the Logs folder
+    log_files = [f for f in os.listdir("Logs") if f.endswith('.csv')]
+
+    for log_file in log_files:
+        print(f"\nProcessing {log_file}...")
+        se = scoringEngine(log_file)
+        se.parseLog()
         
-        if se.isOptimalAllocation(roundProposal, roundTasks):
-            numOptimal += 1
+        numRounds = len(se.rounds)
+        numOptimal = 0
+        allocationRankSum = 0
         
-        allocationRankSum += allocationRank
+        for roundData in se.rounds:
+            roundNum = roundData['roundNumber']
+            roundTasks = se.rounds[roundNum-1]['tasks']
+            roundAgent1Tasks = se.rounds[roundNum-1]['agent1Tasks']
+            roundAgent2Tasks = se.rounds[roundNum-1]['agent2Tasks']
+            roundProposal = Proposal(roundAgent1Tasks, roundAgent2Tasks)
+            allocationRank = se.getAllocationRank(roundProposal, roundTasks)
             
+            if se.isOptimalAllocation(roundProposal, roundTasks):
+                numOptimal += 1
             
-    print(f"Average Allocation Rank: {allocationRankSum/numRounds}")    
-    print(f"Average Allocation Score Loss: {se.getAllocationScoreLoss(roundProposal.totalUtility, se.getAllPossibleAllocations(roundTasks)[0].totalUtility)}%")
-    print(f"Optimal allocation percentage: {se.getOptimalAllocationPercentage()}%")
-    print(f"Percentage within allocation tolerance: {se.getPercentageWithinAllocationTolerance()}%")
-    # se.exportUtilityComparison()
-    se.createUtilityComparisonPlot()
+            allocationRankSum += allocationRank
+        averageUtility = calculateAverageUtility(se.rounds)
+        averageOptimalUtility = calculateAverageOptimalUtility(se.rounds)
+        allocationScoreLoss = 100 * (1 - (averageUtility / averageOptimalUtility))
+        
+        print(f"Average Allocation Rank: {allocationRankSum/numRounds}")    
+        print(f"Average Allocation Score Loss: {allocationScoreLoss}%")
+        print(f"Optimal allocation percentage: {se.getOptimalAllocationPercentage()}%")
+        print(f"Percentage within allocation tolerance: {se.getPercentageWithinAllocationTolerance()}%")
+        se.createUtilityComparisonPlot(True)
+        se.exportUtilityComparison()

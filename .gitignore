@@ -41,3 +41,5 @@ coverage.xml
 .DS_Store
 
 *_*_*-*-*_*:*:*.csv
+*_*, * Tasks.csv
+*-*-*-*,*.csv
