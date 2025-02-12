@@ -97,8 +97,6 @@ class NegotiationManager:
             
         # Check for proposal mismatch when both agree to deal
         if proposal.hasDeal and self.current_proposal and self.current_proposal.hasDeal:
-            print(f"{Fore.YELLOW}Current proposal:\n {self.current_proposal}")
-            print(f"Potential proposal:\n {proposal}{Fore.RESET}")
             if not proposal.equals(self.current_proposal):
                 print(f"{Fore.RED}Proposal Mismatch: {self.get_proposal_mismatch_error(self.current_proposal, other_agent)}{Fore.RESET}")
                 self.negotiation.clearAllSystemMessages(current_agent)
