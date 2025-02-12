@@ -22,7 +22,7 @@ class Agent:
         self.numTokensGenerated = 0 
         self.memory = []
         self.model = None
-        self.proposal = None
+        self.currentProposal = None
         self.systemInstructions = ""
         self.initialProposalHelperInstructions = ""
         self.setUpModel()

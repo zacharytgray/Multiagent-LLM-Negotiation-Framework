@@ -121,11 +121,24 @@ class Negotiation:
                 print(f"{Fore.RED}Negotiation Did Not Finish: {current_agent.agentName} could not produce a valid proposal.{Fore.RESET}")
                 self.DNF = True
                 break
+                       
+            if current_agent == self.agent1:
+                self.agent1.currentProposal = proposal
+            elif current_agent == self.agent2:
+                self.agent2.currentProposal = proposal
+            else:
+                print(f"{Fore.RED}Error: Current agent is neither agent1 nor agent2.{Fore.RESET}")
+                self.DNF = True
+                break
                 
+            bothPropsExist = manager.current_proposal is not None and manager.previous_proposal is not None
             if proposal.hasDeal:
                 manager.deal_counter += 1
-                if manager.deal_counter == 2:
-                    manager.agreement_reached = True
+                if manager.deal_counter >= 2:
+                    # print(f"{Fore.YELLOW}Current proposal: {manager.current_proposal}{Fore.RESET}")
+                    # print(f"{Fore.YELLOW}Previous proposal: {manager.previous_proposal}{Fore.RESET}")
+                    if bothPropsExist and manager.current_proposal.equals(manager.previous_proposal):
+                        manager.agreement_reached = True
             else:
                 manager.deal_counter = 0
 
@@ -291,6 +304,11 @@ json
 COPY THIS ALLOCATION EXACTLY, ESPECIALLY TASK ASSIGNMENTS, AND DO NOT CHANGE ANYTHING ELSE.
 """
         return exampleStr
+    
+    
+    def setConsecutiveDealReminder(self, current_agent, other_agent):
+        reminderStr = f"""***IMPORTANT*** You both agreed to a deal, but your proposals are not the same.\nNote that 'my_tasks' referes to you, {current_agent.agentName}, and 'partner_tasks' refers to {other_agent.agentName}.\nPlease ensure that your proposals match if you agree to a deal."""
+        return reminderStr
     
     def updateAgentInitialInstructions(self, currentAgent, otherAgent):
         if self.numIterations == 0:

@@ -3,12 +3,15 @@ from negotiationFlag import NegotiationFlag
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
 import datetime
 import random
+from proposal import Proposal
 
 class NegotiationManager:
     def __init__(self, negotiation):
         self.negotiation = negotiation
         self.deal_counter = 0
         self.agreement_reached = False
+        self.previous_proposal = None
+        self.current_proposal = None
 
     def initialize_negotiation(self):
         negotiation_start_time = datetime.datetime.now().replace(microsecond=0)
@@ -53,15 +56,17 @@ class NegotiationManager:
                 continue
 
             proposal = self.negotiation.extractProposalFromReponse(response, current_agent) # Flags here can be INVALID_PROPOSAL_FORMAT, INVALID_AGENT_NAME, PROPOSAL_NOT_FOUND
-            proposal_result = self.validate_proposal(proposal, current_agent)
+            proposal_result = self.validate_proposal(proposal, current_agent, other_agent)
             
             if proposal_result == NegotiationFlag.ERROR_FREE:
+                self.previous_proposal = self.current_proposal
+                self.current_proposal = proposal
                 return response, proposal
             
             retries += 1
             print(f"{Fore.RED}Invalid Proposal: {proposal_result}\n{current_agent.agentName}: {response}{Fore.RESET}")
             print(f"{Fore.RED}Retrying... ({retries}/{max_retries} retries){Fore.RESET}")
-
+        
         return None, None # Return None if retries exceed max_retries
 
     def attempt_proposal(self, current_agent, current_input, retries):
@@ -83,12 +88,22 @@ class NegotiationManager:
         print(f"{Fore.RED}Retrying... ({retries}/{max_retries} retries){Fore.RESET}")
         return retries
 
-    def validate_proposal(self, proposal, current_agent):
+    def validate_proposal(self, proposal, current_agent, other_agent):
         if isinstance(proposal, NegotiationFlag): # Can be INVALID_PROPOSAL_FORMAT, INVALID_AGENT_NAME, PROPOSAL_NOT_FOUND or proposal str
             return self.handle_proposal_flag(proposal, current_agent) # Returns INVALID_PROPOSAL_FORMAT or PROPOSAL_NOT_FOUND
             
         if self.negotiation.numIterations == 0:
             return self.validate_initial_proposal(proposal, current_agent) # Returns ERROR_FREE or INVALID_PROPOSAL_FORMAT
+            
+        # Check for proposal mismatch when both agree to deal
+        if proposal.hasDeal and self.current_proposal and self.current_proposal.hasDeal:
+            print(f"{Fore.YELLOW}Current proposal:\n {self.current_proposal}")
+            print(f"Potential proposal:\n {proposal}{Fore.RESET}")
+            if not proposal.equals(self.current_proposal):
+                print(f"{Fore.RED}Proposal Mismatch: {self.get_proposal_mismatch_error(self.current_proposal, other_agent)}{Fore.RESET}")
+                self.negotiation.clearAllSystemMessages(current_agent)
+                current_agent.addToChatHistory('system', self.get_proposal_mismatch_error(self.current_proposal, other_agent))
+                return NegotiationFlag.INVALID_PROPOSAL_FORMAT
             
         return proposal.validateProposal(self.negotiation.tasks)
 
@@ -129,3 +144,10 @@ class NegotiationManager:
     def get_format_error_message(self, current_agent):
         return f"""IMPORTANT: Remember to include the JSON object with the proposed tasks in your response.
                     Remember to include all tasks in your proposal. These are the tasks for this negotiation: {', '.join([task.mappedName for task in self.negotiation.tasks])} \n\nReformat your previous response to include the proposed tasks in the JSON format"""
+
+    def get_proposal_mismatch_error(self, current_proposal, other_agent):
+        return f"""IMPORTANT: You have agreed to a deal, but your proposal does not match the other agent's proposal.
+{other_agent.agentName}'s proposal was:
+{current_proposal.printStringProposal().replace("Agent 1", self.negotiation.agent1.agentName).replace("Agent 2", self.negotiation.agent2.agentName)}
+Please make sure your proposal matches exactly if you want to agree to a deal.
+Otherwise, set has_deal to false."""

@@ -26,7 +26,7 @@ def main():
     agent2Type = "default"
 
 
-    experimentModels = [("qwen2.5:32b","qwen2.5:32b", 8)]
+    experimentModels = [("gemma2","gemma2", 4)]
     
     for agent1Model, agent2Model, numTasks in experimentModels:
         # Setup csv logger

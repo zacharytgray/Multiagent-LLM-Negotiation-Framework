@@ -23,5 +23,9 @@ class Proposal:
     def printStringProposal(self):
         return f"Agent 1 Tasks: {self.agent1Tasks}\nAgent 2 Tasks: {self.agent2Tasks}\nHas Deal: {self.hasDeal}\n"
     
+    def equals(self, other):
+        return set(self.agent1Tasks) == set(other.agent1Tasks) and set(self.agent2Tasks) == set(other.agent2Tasks)\
+            and self.hasDeal == other.hasDeal
+    
     def __repr__(self):
         return f"Agent 1 Tasks: {self.agent1Tasks}\nAgent 2 Tasks: {self.agent2Tasks}\nHas Deal: {self.hasDeal}\n"

@@ -299,7 +299,6 @@ class scoringEngine:
                 
                 writer.writerow([round_num, current_utility, optimal_utility])
 
-
     def createUtilityComparisonPlot(self, saveFile=False):
         """
         Create and display a plot comparing current total utility vs optimal utility for each round
