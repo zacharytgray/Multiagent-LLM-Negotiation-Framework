@@ -417,6 +417,7 @@ if __name__ == "__main__":
         numRounds = len(se.rounds)
         numOptimal = 0
         allocationRankSum = 0
+        iterationsSum = 0  
         
         for roundData in se.rounds:
             roundNum = roundData['roundNumber']
@@ -426,14 +427,21 @@ if __name__ == "__main__":
             roundProposal = Proposal(roundAgent1Tasks, roundAgent2Tasks)
             allocationRank = se.getAllocationRank(roundProposal, roundTasks)
             
+            iterationsSum += roundData['numIterations']  
+            
             if se.isOptimalAllocation(roundProposal, roundTasks):
                 numOptimal += 1
             
             allocationRankSum += allocationRank
+            
         averageUtility = calculateAverageUtility(se.rounds)
         averageOptimalUtility = calculateAverageOptimalUtility(se.rounds)
         allocationScoreLoss = 100 * (1 - (averageUtility / averageOptimalUtility))
+        averageIterations = iterationsSum / numRounds  
         
+        print(f"Average Rounds per Experiment: {averageIterations:.2f}")  # Add this line
+        print(f"Total Experiment Time: {se.totalNegotiationTime}")
+        print(f"Average Time per Episode: {se.averageTimePerRound}")
         print(f"Average Allocation Rank: {allocationRankSum/numRounds}")    
         print(f"Average Allocation Score Loss: {allocationScoreLoss}%")
         print(f"Optimal allocation percentage: {se.getOptimalAllocationPercentage()}%")
